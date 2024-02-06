@@ -48,8 +48,13 @@ void MX_USB_OTG_FS_PCD_Init(void);
 void MX_USB_OTG_HS_PCD_Init(void);
 #endif
 
+#ifdef NUCLE_BOARD
 #define LED_RED_Pin GPIO_PIN_2
 #define LED_RED_GPIO_Port GPIOG
+#else
+#define LED_RED_Pin GPIO_PIN_13
+#define LED_RED_GPIO_Port GPIOC
+#endif
 
 #define CMD_LINE_LEN		(6*1024)			/* length of UART command line (ASCII based) */
 

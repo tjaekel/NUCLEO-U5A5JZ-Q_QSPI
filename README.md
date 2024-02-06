@@ -44,3 +44,6 @@ I have deleted all not needed files (to make the project smaller in size for ZIP
 
 It uses the (new) AZURE RTOS (not the old STM Middleware), the USBX stack, threadx RTOS kernel etc.
 
+## Four states on LEDs with one single GPIO pin
+This project demonstrates also how to use 2 LEDs on a single GPIO pin and to have FOUR states to display.
+

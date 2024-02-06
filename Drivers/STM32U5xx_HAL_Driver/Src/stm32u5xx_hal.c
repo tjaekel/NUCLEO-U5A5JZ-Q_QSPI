@@ -150,6 +150,7 @@ HAL_StatusTypeDef HAL_Init(void)
   /* Update the SystemCoreClock global variable */
   SystemCoreClock = HAL_RCC_GetSysClockFreq() >> AHBPrescTable[(RCC->CFGR2 & RCC_CFGR2_HPRE) >> RCC_CFGR2_HPRE_Pos];
 
+  //it is done again later
   /* Use systick as time base source and configure 1ms tick (default clock after Reset is HSI) */
   if (HAL_InitTick(TICK_INT_PRIORITY) != HAL_OK)
   {

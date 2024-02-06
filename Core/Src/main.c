@@ -690,8 +690,11 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pin = LED2_PIN;
   HAL_GPIO_Init(LED2_GPIO_PORT, &GPIO_InitStruct);
 #else
-  /*Configure GPIO pin Output Level */
+
+#if 1
+  /*Configure GPIO pin Output Level - LED*/
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
+#endif
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5|GPIO_PIN_8, GPIO_PIN_RESET);
@@ -699,12 +702,14 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, GPIO_PIN_RESET);
 
-  /*Configure GPIO pin : PC13 */
+#if 1
+  /*Configure GPIO pin : PC13 - LED */
   GPIO_InitStruct.Pin = GPIO_PIN_13;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+#endif
 
   /*Configure GPIO pins : PA0 PA2 */
   GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_2;
@@ -759,6 +764,47 @@ void LED_Toggle(int dly)
     HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 #endif
     delayCnt = 0;
+}
+
+int GBothLEDs = 0;
+
+void LED_Status(int val)
+{
+	GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+	GBothLEDs = 0;
+
+	if ( !val)
+	{
+#if 1
+		//LED off: configure GPIO pin - as input
+		GPIO_InitStruct.Pin = GPIO_PIN_13;
+		GPIO_InitStruct.Mode = GPIO_MODE_INPUT;	//GPIO_MODE_AF_PP; GPIO_MODE_INPUT;
+		////GPIO_InitStruct.Alternate = GPIO_AF15_EVENTOUT;
+		GPIO_InitStruct.Pull = GPIO_NOPULL;
+		GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+		HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+#else
+		HAL_GPIO_DeInit(GPIOC, GPIO_PIN_13);
+#endif
+	}
+	else
+	{
+		//LED on: initialize GPIO pin again
+		if (val == 1)
+			HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
+		else
+			HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);
+
+		GPIO_InitStruct.Pin = GPIO_PIN_13;
+		GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+		GPIO_InitStruct.Pull = GPIO_NOPULL;
+		GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+		HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+		if (val == 3)
+			GBothLEDs = 1;
+	}
 }
 
 /**

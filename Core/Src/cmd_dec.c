@@ -20,6 +20,7 @@
 volatile int rxFlag[2] = {0,0};
 
 extern void PutCmdLine(int idx, uint8_t *str);
+extern void LED_Status(int val);
 
 static char usrCmdBuf[USR_CMD_STR_SIZE]  = {'\0'};
 
@@ -104,6 +105,7 @@ ECMD_DEC_Status CMD_repeat(TCMD_DEC_Results *res, EResultOut out);
 ECMD_DEC_Status CMD_debug(TCMD_DEC_Results *res, EResultOut out);
 ECMD_DEC_Status CMD_delay(TCMD_DEC_Results *res, EResultOut out);
 ECMD_DEC_Status CMD_usr(TCMD_DEC_Results *res, EResultOut out);
+ECMD_DEC_Status CMD_led(TCMD_DEC_Results *res, EResultOut out);
 
 ECMD_DEC_Status CMD_qspi(TCMD_DEC_Results *res, EResultOut out);
 ECMD_DEC_Status CMD_qspideinit(TCMD_DEC_Results *res, EResultOut out);
@@ -157,6 +159,11 @@ const TCMD_DEC_Command Commands[] = {
 				.cmd = (const char *)"usr",
 				.help = (const char *)"define [-p|-d [cmd [cmd; ...]]] print, define or invoke usr command",
 				.func = CMD_usr
+		},
+		{
+				.cmd = (const char *)"led",
+				.help = (const char *)"led off, on1, on2 [0..3]",
+				.func = CMD_led
 		},
 
 		/* chip specific */
@@ -882,6 +889,15 @@ ECMD_DEC_Status CMD_test(TCMD_DEC_Results *res, EResultOut out)
 		print_log(out, "%08lx ", res->val[i]);
 	}
 	print_log(out, "\r\n");
+
+	return CMD_DEC_OK;
+}
+
+ECMD_DEC_Status CMD_led(TCMD_DEC_Results *res, EResultOut out)
+{
+	(void)out;
+
+	LED_Status((int)res->val[0]);
 
 	return CMD_DEC_OK;
 }

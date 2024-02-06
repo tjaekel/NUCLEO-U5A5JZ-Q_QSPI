@@ -484,20 +484,20 @@ VOID usbx_cdc_acm_read_thread_entry(ULONG thread_input)
 #endif
 #endif
 
-        LED_Toggle(0);
+        ////LED_Toggle(0);
       }
       else
       {
         /* Sleep thread for 10ms if no data received */
         tx_thread_sleep(MS_TO_TICK(10));
-        LED_Toggle(100);
+        ////LED_Toggle(100);
       }
     }
     else
     {
       /* Sleep thread for 10ms */
       tx_thread_sleep(MS_TO_TICK(10));
-      LED_Toggle(100);
+      ////LED_Toggle(100);
     }
   }
 }

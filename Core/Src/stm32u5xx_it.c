@@ -30,6 +30,11 @@ extern PCD_HandleTypeDef hpcd_USB_OTG_HS;
 #endif
 extern TIM_HandleTypeDef htim6;
 
+#ifndef NUCLEO_BOARD
+void LED_Toggle(int dly);
+extern int GBothLEDs;
+#endif
+
 /******************************************************************************/
 /*           Cortex Processor Interruption and Exception Handlers          */
 /******************************************************************************/
@@ -125,6 +130,10 @@ void GPDMA1_Channel5_IRQHandler(void)
 void TIM6_IRQHandler(void)
 {
   HAL_TIM_IRQHandler(&htim6);
+#ifndef NUCLEO_BOARD
+  if (GBothLEDs)
+	  LED_Toggle(0);
+#endif
 }
 
 /**
