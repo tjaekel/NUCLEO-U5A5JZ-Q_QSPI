@@ -5,9 +5,12 @@
  *      Author: tj
  */
 
+#include "main.h"
 #include "QSPI.h"
 #include "MEM_Pool.h"
 #include "SYS_config.h"
+
+extern SPI_HandleTypeDef  hspi3;
 
 uint8_t OSPI_WriteReadTransaction(OSPI_HandleTypeDef *hospi, unsigned long *params, unsigned long numParams, unsigned long numRead)
 {
@@ -249,14 +252,14 @@ void QSPI_ActivatePins(void)
 
 extern HAL_StatusTypeDef HAL_OSPI_SPITransaction(OSPI_HandleTypeDef *hospi, uint8_t *pData, uint32_t Timeout);
 
-uint8_t OSPI_SPITransaction(unsigned long *params, unsigned long numParams)
+uint8_t OSPI_SPITransaction(unsigned char *bytes, unsigned long numParams)
 {
   OSPI_RegularCmdTypeDef sCommand = {0};
 
   sCommand.OperationType      = HAL_OSPI_OPTYPE_COMMON_CFG;
   sCommand.FlashId            = HAL_OSPI_FLASH_ID_1;
 
-  sCommand.Instruction        = 0x55;
+  sCommand.Instruction        = (uint32_t)*bytes++;
 
   sCommand.InstructionMode    = HAL_OSPI_INSTRUCTION_1_LINE;	//HAL_OSPI_INSTRUCTION_NONE;	//HAL_OSPI_INSTRUCTION_1_LINE;
   sCommand.InstructionSize    = HAL_OSPI_INSTRUCTION_8_BITS;
@@ -272,7 +275,7 @@ uint8_t OSPI_SPITransaction(unsigned long *params, unsigned long numParams)
 
   sCommand.DataMode           = HAL_OSPI_DATA_1_LINE;
 
-  sCommand.NbData         	  = numParams * 4;
+  sCommand.NbData         	  = numParams - 1;
 
   sCommand.DataDtrMode        = HAL_OSPI_DATA_DTR_DISABLE;
   sCommand.DummyCycles        = 0;
@@ -291,10 +294,20 @@ uint8_t OSPI_SPITransaction(unsigned long *params, unsigned long numParams)
     return -1;
   }
 
-  if (HAL_OSPI_SPITransaction(&hospi1, (uint8_t *)params, HAL_OSPI_TIMEOUT_DEFAULT_VALUE) != HAL_OK)
+  /** SPI3 as receiver */
+  //NEW: SS in SW mode - NSS is high polarity:
+  __HAL_SPI_ENABLE(&hspi3);
+  SET_BIT(((SPI_HandleTypeDef *)&hspi3)->Instance->CR1, SPI_CR1_SSI);
+  ////SET_BIT(((SPI_HandleTypeDef *)&hspi3)->Instance->CR1, SPI_CR1_CSTART);
+
+  if (HAL_OSPI_SPITransaction(&hospi1, bytes, HAL_OSPI_TIMEOUT_DEFAULT_VALUE) != HAL_OK)
   {
 	return -1;
   }
+
+  /* disable SPI3 */
+  CLEAR_BIT(((SPI_HandleTypeDef *)&hspi3)->Instance->CR1, SPI_CR1_SSI);
+  __HAL_SPI_DISABLE(&hspi3);
 
   return 1;
 }

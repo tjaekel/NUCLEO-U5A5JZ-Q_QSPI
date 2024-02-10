@@ -110,6 +110,7 @@ void GPDMA1_Channel0_IRQHandler(void)
   HAL_DMA_IRQHandler(&handle_GPDMA1_Channel0);
 }
 
+#ifdef UCPD_DMA_USED
 /**
   * @brief This function handles GPDMA1 Channel 3 global interrupt.
   */
@@ -123,6 +124,7 @@ void GPDMA1_Channel3_IRQHandler(void)
 void GPDMA1_Channel5_IRQHandler(void)
 {
 }
+#endif
 
 /**
   * @brief This function handles TIM6 global interrupt.

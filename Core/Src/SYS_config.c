@@ -80,12 +80,12 @@ void CFG_Print(EResultOut out)
 
 void CFG_Print_hex(EResultOut out)
 {
-	int i;
+	size_t i;
 	unsigned long *ulPtr = (unsigned long *)&gCFGparams;
 
 	for (i = 0; i < (sizeof(tCFGparams) / 4); i++)
 	{
-		print_log(out, (const char *)"%2d : 0x%08lx\r\n", i, *ulPtr++);
+		print_log(out, (const char *)"%2d : 0x%08lx\r\n", (int)i, *ulPtr++);
 	}
 }
 
@@ -104,4 +104,5 @@ void SYSINFO_print(EResultOut out)
 	else
 		print_log(out, (const char *)"USB VCP\r\n");
 	ADC_RunOnce(out, 1);
+	print_log(out, (const char *)"volt range : %ld\r\n", HAL_PWREx_GetVoltageRange() >> 16);
 }

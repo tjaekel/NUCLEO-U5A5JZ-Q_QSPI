@@ -103,7 +103,7 @@ void HAL_OSPI_MspInit(OSPI_HandleTypeDef* hospi)
   /** Initializes the peripherals clock
   */
     PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_OSPI;
-    PeriphClkInit.OspiClockSelection = RCC_OSPICLKSOURCE_SYSCLK;
+    PeriphClkInit.OspiClockSelection = RCC_OSPICLKSOURCE_SYSCLK;	//RCC_OSPICLKSOURCE_PLL1;	//RCC_OSPICLKSOURCE_SYSCLK; 160 MHz, could be max. 200 MHz
     if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
     {
       Error_Handler();
@@ -292,6 +292,57 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* huart)
     HAL_NVIC_DisableIRQ(USART1_IRQn);
   }
 
+}
+
+void HAL_SPI_MspInit(SPI_HandleTypeDef* hspi)
+{
+	GPIO_InitTypeDef GPIO_InitStruct = {0};
+	RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
+
+	if(hspi->Instance == SPI3)
+	{
+		PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_SPI3;
+		PeriphClkInit.Spi1ClockSelection = RCC_SPI1CLKSOURCE_SYSCLK;	//RCC_SPI1CLKSOURCE_PCLK2;		//RCC_SPI1CLKSOURCE_SYSCLK;
+		if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
+		{
+			Error_Handler();
+		}
+
+	    /* Peripheral clock enable */
+	    __HAL_RCC_SPI3_CLK_ENABLE();
+
+	    /**SPI3 GPIO Configuration
+	    PC10    ------> SPI3_SCK
+	    PA15    ------> SPI3_NSS - not used, in SW mode
+	    PC11    ------> SPI3_MISO ==> ATT: flip on slave the signals!
+	    PC12    ------> SPI3_MOSI - not used)
+	    */
+	    GPIO_InitStruct.Pin = GPIO_PIN_10|GPIO_PIN_11;
+	    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+	    GPIO_InitStruct.Pull = GPIO_NOPULL;
+	    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+	    GPIO_InitStruct.Alternate = GPIO_AF6_SPI3;
+	    HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+	    /* initialize DMA : use DMA in parallel with QSPI transmit */
+	}
+}
+
+void HAL_SPI_MspDeInit(SPI_HandleTypeDef* hspi)
+{
+	if(hspi->Instance == SPI3)
+	{
+	    /* Peripheral clock disable */
+	    __HAL_RCC_SPI3_CLK_DISABLE();
+
+	    /**SPI3 GPIO Configuration
+		PC10    ------> SPI3_SCK
+	    PA15    ------> SPI3_NSS - not used, in SW mode
+	    PC11    ------> SPI3_MISO ==> ATT: flip on slave the signals!
+	    PC12    ------> SPI3_MOSI - not used)
+	    */
+	    HAL_GPIO_DeInit(GPIOC, GPIO_PIN_10|GPIO_PIN_11);
+	}
 }
 
 /**

@@ -1178,11 +1178,14 @@ HAL_StatusTypeDef HAL_OSPI_Transmit(OSPI_HandleTypeDef *hospi, uint8_t *pData, u
 
 HAL_StatusTypeDef HAL_OSPI_SPITransaction(OSPI_HandleTypeDef *hospi, uint8_t *pData, uint32_t Timeout)
 {
+	extern SPI_HandleTypeDef hspi3;
+
 	  HAL_StatusTypeDef status;
 	  uint32_t tickstart = HAL_GetTick();
 	  __IO uint32_t *data_reg = &hospi->Instance->DR;
 	  uint32_t addr_reg = hospi->Instance->AR;
 	  uint32_t ir_reg = hospi->Instance->IR;
+	  int i;
 
 	  /* Check the data pointer allocation */
 	  if (pData == NULL)
@@ -1200,11 +1203,11 @@ HAL_StatusTypeDef HAL_OSPI_SPITransaction(OSPI_HandleTypeDef *hospi, uint8_t *pD
 	      hospi->XferSize  = hospi->XferCount;
 	      hospi->pBuffPtr  = pData;
 
-	      /* Configure CR register with functional mode as indirect read */
+	      /* Configure CR register with functional mode as indirect read - XXXX: not supported */
 	      ////MODIFY_REG(hospi->Instance->CR, OCTOSPI_CR_FMODE, OSPI_FUNCTIONAL_MODE_INDIRECT_READ);
 	      MODIFY_REG(hospi->Instance->CR, OCTOSPI_CR_FMODE, OSPI_FUNCTIONAL_MODE_INDIRECT_WRITE);
 
-	      /* Trig the transfer by re-writing address or instruction register */
+	      /* Trigger the transfer by re-writing address or instruction register */
 	      if (hospi->Init.MemoryType == HAL_OSPI_MEMTYPE_HYPERBUS)
 	      {
 	        WRITE_REG(hospi->Instance->AR, addr_reg);
@@ -1221,6 +1224,7 @@ HAL_StatusTypeDef HAL_OSPI_SPITransaction(OSPI_HandleTypeDef *hospi, uint8_t *pD
 	        }
 	      }
 
+	      i = 0;
 	      do
 	      {
 	    	*((__IO uint8_t *)data_reg) = *hospi->pBuffPtr;
@@ -1233,8 +1237,21 @@ HAL_StatusTypeDef HAL_OSPI_SPITransaction(OSPI_HandleTypeDef *hospi, uint8_t *pD
 	          break;
 	        }
 
-	        ////*hospi->pBuffPtr = *((__IO uint8_t *)data_reg);
-	        *((__IO uint8_t *)data_reg) = *hospi->pBuffPtr;
+	        ////*hospi->pBuffPtr = *((__IO uint8_t *)data_reg);	//XXXX read and write parallel not supported
+	        if (i == 0)
+	        {
+	        	while ( ! __HAL_SPI_GET_FLAG(&hspi3, SPI_FLAG_RXP)) {;}
+	        	*(hospi->pBuffPtr - 1) = SPI3->RXDR;
+	        	while ( ! __HAL_SPI_GET_FLAG(&hspi3, SPI_FLAG_RXP)) {;}
+	        	*hospi->pBuffPtr = SPI3->RXDR;
+	        	i = 1;
+	        }
+	        else
+	        {
+	        	while ( ! __HAL_SPI_GET_FLAG(&hspi3, SPI_FLAG_RXP)) {;}
+	        	*hospi->pBuffPtr = SPI3->RXDR;			//XXXX
+	        }
+
 	        hospi->pBuffPtr++;
 	        hospi->XferCount--;
 	      } while (hospi->XferCount > 0U);

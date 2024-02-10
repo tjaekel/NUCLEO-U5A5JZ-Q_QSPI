@@ -21,6 +21,6 @@ void QSPI_DeInit(void);
 void QSPI_ReleasePins(void);
 void QSPI_ActivatePins(void);
 
-uint8_t OSPI_SPITransaction(unsigned long *params, unsigned long numParams);
+uint8_t OSPI_SPITransaction(unsigned char *bytes, unsigned long numParams);
 
 #endif /* INC_QSPI_H_ */

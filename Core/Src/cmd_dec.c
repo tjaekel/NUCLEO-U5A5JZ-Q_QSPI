@@ -52,7 +52,7 @@ void Gerneric_ClrRxFlag(EResultOut out)
 	}
 }
 
-volatile int Generic_GetRxFlag(EResultOut out)
+int Generic_GetRxFlag(EResultOut out)
 {
 	if (out == UART_OUT)
 	{
@@ -702,6 +702,8 @@ ECMD_DEC_Status CMD_repeat(TCMD_DEC_Results *res, EResultOut out)
 
 ECMD_DEC_Status CMD_debug(TCMD_DEC_Results *res, EResultOut out)
 {
+	(void)out;
+
 	gCFGparams.Debug = res->val[0];
 
 	return CMD_DEC_OK;
@@ -719,6 +721,8 @@ ECMD_DEC_Status CMD_sysinfo(TCMD_DEC_Results *res, EResultOut out)
 
 ECMD_DEC_Status CMD_delay(TCMD_DEC_Results *res, EResultOut out)
 {
+	(void)out;
+
 	tx_thread_sleep(res->val[0]);
 
 	return CMD_DEC_OK;
@@ -760,8 +764,8 @@ ECMD_DEC_Status CMD_usr(TCMD_DEC_Results *res, EResultOut out)
 
 ECMD_DEC_Status CMD_qspi(TCMD_DEC_Results *res, EResultOut out)
 {
-	int numRead = 0;			//default is 0
-	int x;
+	unsigned long numRead = 0;			//default is 0
+	unsigned long x;
 
 	/* check if we have enough parameters */
 	x = 1 + ((gCFGparams.QSPIaddr + 3) / 4) + ((gCFGparams.QSPIalt + 3) / 4);
@@ -772,7 +776,7 @@ ECMD_DEC_Status CMD_qspi(TCMD_DEC_Results *res, EResultOut out)
 	{
 		if (*res->opt == '-')
 		{
-			sscanf((res->opt + 1), (const char *)"%i", &numRead);
+			sscanf((res->opt + 1), (const char *)"%i", (int *)&numRead);
 		}
 	}
 
@@ -871,6 +875,8 @@ ECMD_DEC_Status CMD_qspiclk(TCMD_DEC_Results *res, EResultOut out)
 
 ECMD_DEC_Status CMD_cid(TCMD_DEC_Results *res, EResultOut out)
 {
+	(void)res;
+
 	unsigned long cid;
 
 	cid = QSPI_ReadChipID(out);
@@ -881,14 +887,36 @@ ECMD_DEC_Status CMD_cid(TCMD_DEC_Results *res, EResultOut out)
 
 ECMD_DEC_Status CMD_test(TCMD_DEC_Results *res, EResultOut out)
 {
-	int i;
+	(void)res;
+	(void)out;
+	static unsigned char spiTx[512];
+#if 1
+	unsigned long i;
 
-	OSPI_SPITransaction(res->val, res->num);
+	if (res->num < 2)
+		return CMD_DEC_INVPARAM;
+
+	for (i = 0; i < res->num; i++)
+		spiTx[i] = (unsigned char)res->val[i];
+
+	OSPI_SPITransaction(spiTx, res->num);
 	for (i = 0; i < res->num; i++)
 	{
-		print_log(out, "%08lx ", res->val[i]);
+		print_log(out, "%02x ", spiTx[i]);
 	}
 	print_log(out, "\r\n");
+#endif
+
+#if 0
+	/* measure VCP UART speed */
+	int i;
+	unsigned int startTS, endTS;
+	startTS = HAL_GetTick();
+	for (i = 0; i < 10000; i++)
+		VCP_UART_Send((const uint8_t *)"1111111111222222222233333333334444444444555555555566666666667777", 64);
+	endTS = HAL_GetTick();
+	print_log(out, "\r\nstart: %u | end: %u | delta: %u | %u bytes\r\n", startTS, endTS, endTS - startTS, i * 64);
+#endif
 
 	return CMD_DEC_OK;
 }

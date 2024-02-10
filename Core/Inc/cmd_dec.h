@@ -34,7 +34,7 @@ extern void UART_Send(const uint8_t *p, size_t l);
 extern void VCP_UART_Send(const uint8_t *p, size_t l);
 extern void Generic_Send(const uint8_t *s, int l, EResultOut out);
 extern void Gerneric_ClrRxFlag(EResultOut out);
-extern volatile int Generic_GetRxFlag(EResultOut out);
+extern int Generic_GetRxFlag(EResultOut out);
 extern void Generic_SetRxFlag(EResultOut out);
 
 #define XPRINT_LEN	1024

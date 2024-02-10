@@ -120,5 +120,15 @@ int ADC_RunOnce(EResultOut out, int flag)
 	if (flag)
 		print_log(out, "MCU params : VRef: %ld.%ldV VBat: %ld.%ldV Temp: %ldC\r\n", VRefInt/1000, VRefInt%1000, VBat/1000, VBat%1000, TSensor);
 
+#if 0
+	/* change to HSLV if we see below 1.9V */
+	if (VRefInt < 1900)
+	{
+		LL_GPIO_EnableHighSPeedLowVoltage(GPIOA, LL_GPIO_PIN_2);
+		LL_GPIO_EnableHighSPeedLowVoltage(GPIOB, LL_GPIO_PIN_0 | LL_GPIO_PIN_10);
+		LL_GPIO_EnableHighSPeedLowVoltage(GPIOE, LL_GPIO_PIN_12 | LL_GPIO_PIN_14 | LL_GPIO_PIN_15);
+	}
+#endif
+
 	return 1;
 }

@@ -116,8 +116,7 @@ void SendPrompt(int idx)
 
 void PutCmdLine(int idx, uint8_t *str)
 {
-	size_t l, oldIdx;
-	int i;
+	size_t i, l, oldIdx;
 	l = strlen((char *)str);
 
 	oldIdx = CmdLineIdx[idx];
@@ -663,6 +662,8 @@ void UART_Send(const uint8_t *p, size_t l)
   */
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 {
+	(void)huart;
+
   /* Set TX_NEW_TRANSMITTED_DATA flag */
   if (tx_event_flags_set(&EventFlag, TX_NEW_TRANSMITTED_DATA, TX_OR) != TX_SUCCESS)
   {
@@ -677,6 +678,8 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
   */
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
+	(void)huart;
+
   /* Set RX_NEW_RECEIVED_DATA flag */
   if (tx_event_flags_set(&EventFlag, RX_NEW_RECEIVED_DATA, TX_OR) != TX_SUCCESS)
   {
@@ -711,6 +714,8 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
   */
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *UartHandle)
 {
+	(void)UartHandle;
+
   Error_Handler();
 }
 

@@ -35,6 +35,7 @@ extern "C" {
 #include "stm32u5xx_ll_pwr.h"
 #include "stm32u5xx_ll_gpio.h"
 #include "stm32u5xx_ll_dma.h"
+#include "stm32u5xx_ll_spi.h"
 
 #include "stm32u5xx_ll_exti.h"
 
@@ -58,7 +59,7 @@ void MX_USB_OTG_HS_PCD_Init(void);
 
 #define CMD_LINE_LEN		(6*1024)			/* length of UART command line (ASCII based) */
 
-#define VERSION_INFO		"V2.1"
+#define VERSION_INFO		"V2.2"
 #define VERSION_STRING		"---- QSPI MCU - " VERSION_INFO " ----\r\n"
 #ifdef NUCLEO_BOARD
 #define BOARD_INFO			"NUCLEO"

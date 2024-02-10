@@ -822,6 +822,7 @@ void HAL_PCD_ResetCallback(PCD_HandleTypeDef *hpcd)
 /**************************************************************************/
 void HAL_PCD_ConnectCallback(PCD_HandleTypeDef *hpcd)
 {
+	(void)hpcd;
 
     /* Check the status change callback.  */
     if (_ux_system_slave -> ux_system_slave_change_function != UX_NULL)
@@ -876,6 +877,7 @@ void HAL_PCD_ConnectCallback(PCD_HandleTypeDef *hpcd)
 /**************************************************************************/
 void HAL_PCD_DisconnectCallback(PCD_HandleTypeDef *hpcd)
 {
+	(void)hpcd;
 
     /* Check the status change callback.  */
     if (_ux_system_slave -> ux_system_slave_change_function != UX_NULL)
@@ -935,6 +937,7 @@ void HAL_PCD_DisconnectCallback(PCD_HandleTypeDef *hpcd)
 /**************************************************************************/
 void HAL_PCD_SuspendCallback(PCD_HandleTypeDef *hpcd)
 {
+	(void)hpcd;
 
     /* Check the status change callback.  */
     if (_ux_system_slave -> ux_system_slave_change_function != UX_NULL)
@@ -986,6 +989,7 @@ void HAL_PCD_SuspendCallback(PCD_HandleTypeDef *hpcd)
 /**************************************************************************/
 void HAL_PCD_ResumeCallback(PCD_HandleTypeDef *hpcd)
 {
+	(void)hpcd;
 
     /* Check the status change callback.  */
     if (_ux_system_slave -> ux_system_slave_change_function != UX_NULL)
@@ -1037,6 +1041,7 @@ void HAL_PCD_ResumeCallback(PCD_HandleTypeDef *hpcd)
 /**************************************************************************/
 void HAL_PCD_SOFCallback(PCD_HandleTypeDef *hpcd)
 {
+	(void)hpcd;
 
     /* Check the status change callback.  */
     if (_ux_system_slave -> ux_system_slave_change_function != UX_NULL)

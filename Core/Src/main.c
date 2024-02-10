@@ -36,7 +36,7 @@ ADC_HandleTypeDef hadc1;
 
 DCACHE_HandleTypeDef hdcache1;
 OSPI_HandleTypeDef hospi1;
-
+SPI_HandleTypeDef  hspi3;
 UART_HandleTypeDef huart1;
 DMA_HandleTypeDef handle_GPDMA1_Channel0;
 
@@ -61,6 +61,7 @@ static void MX_UCPD1_Init(void);
 static void MX_ADC1_Init(void);
 #endif
 void MX_OCTOSPI1_Init(void);
+void MX_SPI3_Init(void);
 
 /**
   * @brief  The application entry point.
@@ -95,6 +96,7 @@ int main(void)
   MX_ADC1_Init();
 #endif
   MX_OCTOSPI1_Init();
+  MX_SPI3_Init();
 
   MEM_PoolInit();
   /* Call PreOsInit function */
@@ -113,74 +115,6 @@ int main(void)
   * @brief System Clock Configuration
   * @retval None
   */
-#if 0
-void SystemClock_Config(void)
-{
-  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
-  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
-
-  /** Configure the main internal regulator output voltage */
-  if (HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  /** Initializes the CPU, AHB and APB buses clocks */
-
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI|RCC_OSCILLATORTYPE_HSE;
-#ifdef NUCLEO_BOARD
-  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-#else
-  RCC_OscInitStruct.HSEState = RCC_HSE_BYPASS;
-#endif
-  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-  RCC_OscInitStruct.PLL.PLLMBOOST = RCC_PLLMBOOST_DIV1;
-#ifdef NUCLEO_BOARD
-  //16 MHz XTAL, NUCLEO board
-  RCC_OscInitStruct.PLL.PLLM = 1;
-  RCC_OscInitStruct.PLL.PLLN = 20;	//
-  RCC_OscInitStruct.PLL.PLLP = 10; 	//32 MHz needed here!
-  RCC_OscInitStruct.PLL.PLLQ = 2;
-  RCC_OscInitStruct.PLL.PLLR = 2;
-  RCC_OscInitStruct.PLL.PLLRGE = RCC_PLLVCIRANGE_1;
-#else
-  //8 MHz OSC, my board
-  RCC_OscInitStruct.PLL.PLLM = 1;	//2;  ==> THIS FAILS on USB
-  RCC_OscInitStruct.PLL.PLLN = 40;	//20; ==> THIS FAILS on USB
-  RCC_OscInitStruct.PLL.PLLP = 10;	//32 MHz, USB with PLL2_P_DIV2! (as 16 MHz)
-  RCC_OscInitStruct.PLL.PLLQ = 2;
-  RCC_OscInitStruct.PLL.PLLR = 2;	//should result in 160 MCU clock
-  RCC_OscInitStruct.PLL.PLLRGE = RCC_PLLVCIRANGE_1;
-#endif
-
-  RCC_OscInitStruct.PLL.PLLFRACN = 0;
-  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  /** Initializes the CPU, AHB and APB buses clocks */
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2
-                              |RCC_CLOCKTYPE_PCLK3;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
-  RCC_ClkInitStruct.APB3CLKDivider = RCC_HCLK_DIV1;
-
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_4) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  HAL_RCC_EnableCSS();
-}
-#endif
-
 void SystemClock_Config(void)
 {
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
@@ -218,10 +152,11 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
   RCC_OscInitStruct.PLL.PLLMBOOST = RCC_PLLMBOOST_DIV1;
   RCC_OscInitStruct.PLL.PLLM = 1;
-  RCC_OscInitStruct.PLL.PLLN = 10;
-  RCC_OscInitStruct.PLL.PLLP = 2;		//AAAA: was 4
+  RCC_OscInitStruct.PLL.PLLN = 20;	//20 for 160 MHz, 22: 176 MHz, MCU OK, 23: 184 MHz, MCU OK - no improvement on QSPI speed
+  	  	  	  	  	  	  	  	  	//24: 192 MHz, MCU OK - now QSPI fails with DIV = 13!!!!
+  RCC_OscInitStruct.PLL.PLLP = 2;	//AAAA: was 4
   RCC_OscInitStruct.PLL.PLLQ = 2;
-  RCC_OscInitStruct.PLL.PLLR = 1;
+  RCC_OscInitStruct.PLL.PLLR = 2;
   RCC_OscInitStruct.PLL.PLLRGE = RCC_PLLVCIRANGE_1;
 #else
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
@@ -230,9 +165,9 @@ void SystemClock_Config(void)
   //16 MHz XTAL, NUCLEO board
   RCC_OscInitStruct.PLL.PLLM = 1;
   RCC_OscInitStruct.PLL.PLLN = 20;	//
-  RCC_OscInitStruct.PLL.PLLP = 10; 	//32 MHz needed here!
-  RCC_OscInitStruct.PLL.PLLQ = 2;
-  RCC_OscInitStruct.PLL.PLLR = 2;
+  RCC_OscInitStruct.PLL.PLLP = 10; 	//32 MHz needed here - for USB OTG!
+  RCC_OscInitStruct.PLL.PLLQ = 2;	//max. 200 MHz, for QSPI only! with 2 = 160 MHz
+  RCC_OscInitStruct.PLL.PLLR = 2;	//160 MHz SYS clock
   RCC_OscInitStruct.PLL.PLLRGE = RCC_PLLVCIRANGE_1;
 #else
   //8 MHz OSC, my board
@@ -302,6 +237,10 @@ static void SystemPower_Config(void)
   {
     Error_Handler();
   }
+
+  LL_SYSCFG_EnableVddCompensationCell();
+
+  ////HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1);
 }
 
 /**
@@ -368,10 +307,12 @@ static void MX_GPDMA1_Init(void)
   /* GPDMA1 interrupt Init */
     HAL_NVIC_SetPriority(GPDMA1_Channel0_IRQn, 0, 0);
     HAL_NVIC_EnableIRQ(GPDMA1_Channel0_IRQn);
+#ifdef UCPD_DMA_USED
     HAL_NVIC_SetPriority(GPDMA1_Channel3_IRQn, 0, 0);
     HAL_NVIC_EnableIRQ(GPDMA1_Channel3_IRQn);
     HAL_NVIC_SetPriority(GPDMA1_Channel5_IRQn, 0, 0);
     HAL_NVIC_EnableIRQ(GPDMA1_Channel5_IRQn);
+#endif
 }
 
 /**
@@ -426,7 +367,7 @@ void MX_OCTOSPI1_Init(void)
   hospi1.Init.MemoryType = HAL_OSPI_MEMTYPE_MICRON;
   hospi1.Init.DeviceSize = 32;
   hospi1.Init.ChipSelectHighTime = 1;
-  hospi1.Init.FreeRunningClock = HAL_OSPI_FREERUNCLK_DISABLE;
+  hospi1.Init.FreeRunningClock = HAL_OSPI_FREERUNCLK_DISABLE;	//HAL_OSPI_FREERUNCLK_DISABLE;
   hospi1.Init.ClockMode = gCFGparams.QSPImode;
   hospi1.Init.WrapSize = HAL_OSPI_WRAP_NOT_SUPPORTED;
   hospi1.Init.ClockPrescaler = gCFGparams.QSPIdiv;
@@ -640,7 +581,7 @@ void MX_USB_OTG_HS_PCD_Init(void)
   hpcd_USB_OTG_HS.Init.lpm_enable = DISABLE;
   hpcd_USB_OTG_HS.Init.use_dedicated_ep1 = DISABLE;
   hpcd_USB_OTG_HS.Init.vbus_sensing_enable = DISABLE;
-  hpcd_USB_OTG_HS.Init.dma_enable = DISABLE;
+  hpcd_USB_OTG_HS.Init.dma_enable = DISABLE;	//ENABLE;	//DISABLE;
   if (HAL_PCD_Init(&hpcd_USB_OTG_HS) != HAL_OK)
   {
     Error_Handler();
@@ -746,6 +687,117 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 #endif
 }
+
+#if 0
+void MX_SPI3_Init(void)
+{
+  /* SPI4 parameter configuration*/
+  hspi3.Instance = SPI3;
+  hspi3.Init.Mode = SPI_MODE_SLAVE;
+  hspi3.Init.Direction = SPI_DIRECTION_2LINES_RXONLY;
+
+  /* we keep 8bit = byte, WordSize and Endian used on commands */
+  hspi3.Init.DataSize = SPI_DATASIZE_8BIT;
+
+  switch (gCFGparams.QSPImode)
+  {
+  case 0: hspi3.Init.CLKPolarity = SPI_POLARITY_LOW;
+  	  	  hspi3.Init.CLKPhase = SPI_PHASE_1EDGE;
+  	  	  break;
+  case 1: hspi3.Init.CLKPolarity = SPI_POLARITY_LOW;
+  	  	  hspi3.Init.CLKPhase = SPI_PHASE_2EDGE;
+  	  	  break;
+  case 2: hspi3.Init.CLKPolarity = SPI_POLARITY_HIGH;
+  	  	  hspi3.Init.CLKPhase = SPI_PHASE_1EDGE;
+  	  	  break;
+  default:
+	  	  hspi3.Init.CLKPolarity = SPI_POLARITY_HIGH;
+  	  	  hspi3.Init.CLKPhase = SPI_PHASE_2EDGE;
+  	  	  break;
+  }
+  /* the same as QSPI */
+  ////if (CFG_SPI_GET(gCFGparams.SPI1stBit, 1) == CFG_SPI_1STBIT_LSB)
+  ////	  hspi3.Init.FirstBit = SPI_FIRSTBIT_LSB;
+  ////else
+	  hspi3.Init.FirstBit = SPI_FIRSTBIT_MSB;
+
+  hspi3.Init.NSS = SPI_NSS_SOFT;	//SPI_NSS_HARD_INPUT;
+  hspi3.Init.TIMode = SPI_TIMODE_DISABLE;
+  hspi3.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+  hspi3.Init.CRCPolynomial = 7;
+  hspi3.Init.NSSPMode = SPI_NSS_PULSE_DISABLE;
+  hspi3.Init.NSSPolarity = SPI_NSS_POLARITY_LOW;
+  hspi3.Init.FifoThreshold = SPI_FIFO_THRESHOLD_01DATA;
+  hspi3.Init.TxCRCInitializationPattern = SPI_CRC_INITIALIZATION_ALL_ZERO_PATTERN;
+  hspi3.Init.RxCRCInitializationPattern = SPI_CRC_INITIALIZATION_ALL_ZERO_PATTERN;
+  hspi3.Init.MasterSSIdleness = SPI_MASTER_SS_IDLENESS_00CYCLE;
+  hspi3.Init.MasterInterDataIdleness = SPI_MASTER_INTERDATA_IDLENESS_00CYCLE;
+  hspi3.Init.MasterReceiverAutoSusp = SPI_MASTER_RX_AUTOSUSP_DISABLE;;
+  hspi3.Init.MasterKeepIOState = SPI_MASTER_KEEP_IO_STATE_DISABLE;
+  hspi3.Init.IOSwap = SPI_IO_SWAP_ENABLE;	//SPI_IO_SWAP_ENABLE;	//SPI_IO_SWAP_DISABLE; //!! MISO is MOSI !!
+  if (HAL_SPI_Init(&hspi3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+}
+#else
+void MX_SPI3_Init(void)
+{
+  SPI_AutonomousModeConfTypeDef HAL_SPI_AutonomousMode_Cfg_Struct = {0};
+
+  /* SPI1 parameter configuration*/
+  hspi3.Instance = SPI3;
+  hspi3.Init.Mode = SPI_MODE_SLAVE;
+  hspi3.Init.Direction = SPI_DIRECTION_2LINES_RXONLY;	//SPI_DIRECTION_2LINES;
+  hspi3.Init.DataSize = SPI_DATASIZE_8BIT;				//SPI3 only 8 or 16bit !!
+  ////hspi3.Init.CLKPolarity = SPI_POLARITY_LOW;
+  ////hspi3.Init.CLKPhase = SPI_PHASE_1EDGE;
+  switch (gCFGparams.QSPImode)
+  {
+  case 0: hspi3.Init.CLKPolarity = SPI_POLARITY_LOW;
+  	  	  hspi3.Init.CLKPhase = SPI_PHASE_1EDGE;
+  	  	  break;
+  case 1: hspi3.Init.CLKPolarity = SPI_POLARITY_LOW;
+  	  	  hspi3.Init.CLKPhase = SPI_PHASE_2EDGE;
+  	  	  break;
+  case 2: hspi3.Init.CLKPolarity = SPI_POLARITY_HIGH;
+  	  	  hspi3.Init.CLKPhase = SPI_PHASE_1EDGE;
+  	  	  break;
+  default:
+	  	  hspi3.Init.CLKPolarity = SPI_POLARITY_HIGH;
+  	  	  hspi3.Init.CLKPhase = SPI_PHASE_2EDGE;
+  	  	  break;
+  }
+  hspi3.Init.NSS = SPI_NSS_SOFT;
+  hspi3.Init.FirstBit = SPI_FIRSTBIT_MSB;
+  hspi3.Init.TIMode = SPI_TIMODE_DISABLE;
+  hspi3.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+  hspi3.Init.CRCPolynomial = 0x7;
+  hspi3.Init.NSSPMode = SPI_NSS_PULSE_DISABLE;
+  hspi3.Init.NSSPolarity = SPI_NSS_POLARITY_HIGH;	//SPI_NSS_POLARITY_LOW;
+  hspi3.Init.FifoThreshold = SPI_FIFO_THRESHOLD_01DATA;
+  hspi3.Init.MasterSSIdleness = SPI_MASTER_SS_IDLENESS_00CYCLE;
+  hspi3.Init.MasterInterDataIdleness = SPI_MASTER_INTERDATA_IDLENESS_00CYCLE;
+  hspi3.Init.MasterReceiverAutoSusp = SPI_MASTER_RX_AUTOSUSP_DISABLE;
+  hspi3.Init.MasterKeepIOState = SPI_MASTER_KEEP_IO_STATE_DISABLE;
+  hspi3.Init.IOSwap = SPI_IO_SWAP_ENABLE;	//SPI_IO_SWAP_DISABLE;
+  hspi3.Init.ReadyMasterManagement = SPI_RDY_MASTER_MANAGEMENT_INTERNALLY;
+  hspi3.Init.ReadyPolarity = SPI_RDY_POLARITY_HIGH;
+  if (HAL_SPI_Init(&hspi3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  HAL_SPI_AutonomousMode_Cfg_Struct.TriggerState = SPI_AUTO_MODE_DISABLE;
+  HAL_SPI_AutonomousMode_Cfg_Struct.TriggerSelection = SPI_GRP1_GPDMA_CH0_TCF_TRG;
+  HAL_SPI_AutonomousMode_Cfg_Struct.TriggerPolarity = SPI_TRIG_POLARITY_RISING;
+  if (HAL_SPIEx_SetConfigAutonomousMode(&hspi3, &HAL_SPI_AutonomousMode_Cfg_Struct) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  ////__HAL_SPI_ENABLE(&hspi3);
+}
+#endif
 
 void LED_Toggle(int dly)
 {
