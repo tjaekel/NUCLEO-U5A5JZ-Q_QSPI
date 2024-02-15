@@ -164,6 +164,8 @@ __weak int32_t BSP_USBPD_PWR_Deinit(uint32_t Instance)
   */
 __weak int32_t BSP_USBPD_PWR_SetRole(uint32_t Instance, USBPD_PWR_PowerRoleTypeDef Role)
 {
+  (void) Role;
+
   /* USER CODE BEGIN BSP_USBPD_PWR_SetRole */
   /* Check if instance is valid       */
   int32_t ret = BSP_ERROR_NONE;
@@ -196,6 +198,8 @@ __weak int32_t BSP_USBPD_PWR_SetRole(uint32_t Instance, USBPD_PWR_PowerRoleTypeD
   */
 __weak int32_t BSP_USBPD_PWR_SetPowerMode(uint32_t Instance, USBPD_PWR_PowerModeTypeDef PwrMode)
 {
+  (void) PwrMode;
+
   /* USER CODE BEGIN BSP_USBPD_PWR_SetPowerMode */
   /* Check if instance is valid       */
   int32_t ret = BSP_ERROR_NONE;
@@ -228,6 +232,8 @@ __weak int32_t BSP_USBPD_PWR_SetPowerMode(uint32_t Instance, USBPD_PWR_PowerMode
   */
 __weak int32_t BSP_USBPD_PWR_GetPowerMode(uint32_t Instance, USBPD_PWR_PowerModeTypeDef *PwrMode)
 {
+  (void) PwrMode;
+
   /* USER CODE BEGIN BSP_USBPD_PWR_GetPowerMode */
   /* Check if instance is valid       */
   int32_t ret = BSP_ERROR_NONE;
@@ -360,6 +366,10 @@ __weak int32_t BSP_USBPD_PWR_VBUSSetVoltage_Fixed(uint32_t Instance,
                                            uint32_t OperatingCurrent,
                                            uint32_t MaxOperatingCurrent)
 {
+  (void) MaxOperatingCurrent;
+  (void) OperatingCurrent;
+  (void) VbusTargetInmv;
+
   /* USER CODE BEGIN BSP_USBPD_PWR_VBUSSetVoltage_Fixed */
   /* Check if instance is valid       */
   int32_t ret = BSP_ERROR_NONE;
@@ -389,6 +399,11 @@ __weak int32_t BSP_USBPD_PWR_VBUSSetVoltage_Variable(uint32_t Instance,
                                               uint32_t OperatingCurrent,
                                               uint32_t MaxOperatingCurrent)
 {
+  (void) MaxOperatingCurrent;
+  (void) OperatingCurrent;
+  (void) VbusTargetMinInmv;
+  (void) VbusTargetMaxInmv;
+
   /* USER CODE BEGIN BSP_USBPD_PWR_VBUSSetVoltage_Variable */
   /* Check if instance is valid       */
   int32_t ret = BSP_ERROR_FEATURE_NOT_SUPPORTED;
@@ -418,6 +433,11 @@ __weak int32_t BSP_USBPD_PWR_VBUSSetVoltage_Battery(uint32_t Instance,
                                              uint32_t OperatingPower,
                                              uint32_t MaxOperatingPower)
 {
+  (void) OperatingPower;
+  (void) MaxOperatingPower;
+  (void) VbusTargetMin;
+  (void) VbusTargetMax;
+
   /* USER CODE BEGIN BSP_USBPD_PWR_VBUSSetVoltage_Battery */
   /* Check if instance is valid       */
   int32_t ret = BSP_ERROR_FEATURE_NOT_SUPPORTED;
@@ -445,7 +465,10 @@ __weak int32_t BSP_USBPD_PWR_VBUSSetVoltage_APDO(uint32_t Instance,
                                           uint32_t OperatingCurrent,
                                           int32_t Delta)
 {
-  /* USER CODE BEGIN BSP_USBPD_PWR_VBUSSetVoltage_APDO */
+  (void) Delta;
+  (void) VbusTargetInmv;
+  (void) OperatingCurrent;
+
   /* Check if instance is valid       */
   int32_t ret = BSP_ERROR_FEATURE_NOT_SUPPORTED;
 
@@ -454,7 +477,6 @@ __weak int32_t BSP_USBPD_PWR_VBUSSetVoltage_APDO(uint32_t Instance,
     ret = BSP_ERROR_WRONG_PARAM;
   }
   return ret;
-  /* USER CODE END BSP_USBPD_PWR_VBUSSetVoltage_APDO */
 }
 
 /**
@@ -525,10 +547,10 @@ __weak int32_t BSP_USBPD_PWR_VBUSGetCurrent(uint32_t Instance, int32_t *pCurrent
   *         @arg @ref USBPD_PWR_TYPE_C_CC2
   * @retval BSP status
   */
-__weak int32_t BSP_USBPD_PWR_VCONNInit(uint32_t Instance,
-                                uint32_t CCPinId)
+__weak int32_t BSP_USBPD_PWR_VCONNInit(uint32_t Instance, uint32_t CCPinId)
 {
-  /* USER CODE BEGIN BSP_USBPD_PWR_VCONNInit */
+  (void) CCPinId;
+
   /* Check if instance is valid       */
   int32_t ret = BSP_ERROR_FEATURE_NOT_SUPPORTED;
 
@@ -537,7 +559,6 @@ __weak int32_t BSP_USBPD_PWR_VCONNInit(uint32_t Instance,
     ret = BSP_ERROR_WRONG_PARAM;
   }
   return ret;
-  /* USER CODE END BSP_USBPD_PWR_VCONNInit */
 }
 
 /**
@@ -551,10 +572,10 @@ __weak int32_t BSP_USBPD_PWR_VCONNInit(uint32_t Instance,
   *         @arg @ref USBPD_PWR_TYPE_C_CC2
   * @retval BSP status
   */
-__weak int32_t BSP_USBPD_PWR_VCONNDeInit(uint32_t Instance,
-                                  uint32_t CCPinId)
+__weak int32_t BSP_USBPD_PWR_VCONNDeInit(uint32_t Instance, uint32_t CCPinId)
 {
-  /* USER CODE BEGIN BSP_USBPD_PWR_VCONNDeInit */
+  (void) CCPinId;
+
   /* Check if instance is valid       */
   int32_t ret = BSP_ERROR_FEATURE_NOT_SUPPORTED;
 
@@ -563,7 +584,6 @@ __weak int32_t BSP_USBPD_PWR_VCONNDeInit(uint32_t Instance,
     ret = BSP_ERROR_WRONG_PARAM;
   }
   return ret;
-  /* USER CODE END BSP_USBPD_PWR_VCONNDeInit */
 }
 
 /**
@@ -577,10 +597,10 @@ __weak int32_t BSP_USBPD_PWR_VCONNDeInit(uint32_t Instance,
   *         @arg @ref USBPD_PWR_TYPE_C_CC2
   * @retval BSP status
   */
-__weak int32_t BSP_USBPD_PWR_VCONNOn(uint32_t Instance,
-                              uint32_t CCPinId)
+__weak int32_t BSP_USBPD_PWR_VCONNOn(uint32_t Instance, uint32_t CCPinId)
 {
-  /* USER CODE BEGIN BSP_USBPD_PWR_VCONNOn */
+  (void) CCPinId;
+
   /* Check if instance is valid       */
   int32_t ret = BSP_ERROR_FEATURE_NOT_SUPPORTED;
 
@@ -589,7 +609,6 @@ __weak int32_t BSP_USBPD_PWR_VCONNOn(uint32_t Instance,
     ret = BSP_ERROR_WRONG_PARAM;
   }
   return ret;
-  /* USER CODE END BSP_USBPD_PWR_VCONNOn */
 }
 
 /**
@@ -603,10 +622,10 @@ __weak int32_t BSP_USBPD_PWR_VCONNOn(uint32_t Instance,
   *         @arg @ref USBPD_PWR_TYPE_C_CC2
   * @retval BSP status
   */
-__weak int32_t BSP_USBPD_PWR_VCONNOff(uint32_t Instance,
-                               uint32_t CCPinId)
+__weak int32_t BSP_USBPD_PWR_VCONNOff(uint32_t Instance, uint32_t CCPinId)
 {
-  /* USER CODE BEGIN BSP_USBPD_PWR_VCONNOff */
+  (void) CCPinId;
+
   /* Check if instance is valid       */
   int32_t ret = BSP_ERROR_FEATURE_NOT_SUPPORTED;
 
@@ -615,7 +634,6 @@ __weak int32_t BSP_USBPD_PWR_VCONNOff(uint32_t Instance,
     ret = BSP_ERROR_WRONG_PARAM;
   }
   return ret;
-  /* USER CODE END BSP_USBPD_PWR_VCONNOff */
 }
 
 /**
@@ -630,10 +648,10 @@ __weak int32_t BSP_USBPD_PWR_VCONNOff(uint32_t Instance,
   * @param  pState VCONN status (1: On, 0: Off)
   * @retval BSP status
   */
-__weak int32_t BSP_USBPD_PWR_VCONNIsOn(uint32_t Instance,
-                                uint32_t CCPinId, uint8_t *pState)
+__weak int32_t BSP_USBPD_PWR_VCONNIsOn(uint32_t Instance, uint32_t CCPinId, uint8_t *pState)
 {
-  /* USER CODE BEGIN BSP_USBPD_PWR_VCONNIsOn */
+  (void) CCPinId;
+
   /* Check if instance is valid       */
   int32_t ret = BSP_ERROR_FEATURE_NOT_SUPPORTED;
 
@@ -643,7 +661,6 @@ __weak int32_t BSP_USBPD_PWR_VCONNIsOn(uint32_t Instance,
   }
   *pState = 0u;
   return ret;
-  /* USER CODE END BSP_USBPD_PWR_VCONNIsOn */
 }
 
 /**
@@ -660,6 +677,8 @@ __weak int32_t BSP_USBPD_PWR_VCONNIsOn(uint32_t Instance,
 __weak int32_t BSP_USBPD_PWR_SetVBUSDisconnectionThreshold(uint32_t Instance,
                                                     uint32_t VoltageThreshold)
 {
+  (void) VoltageThreshold;
+
   /* USER CODE BEGIN BSP_USBPD_PWR_SetVBUSDisconnectionThreshold */
   /* Check if instance is valid       */
   int32_t ret = BSP_ERROR_FEATURE_NOT_SUPPORTED;
@@ -687,6 +706,8 @@ __weak int32_t BSP_USBPD_PWR_SetVBUSDisconnectionThreshold(uint32_t Instance,
 __weak int32_t BSP_USBPD_PWR_RegisterVBUSDetectCallback(uint32_t  Instance,
                                                  USBPD_PWR_VBUSDetectCallbackFunc *pfnVBUSDetectCallback)
 {
+  (void) pfnVBUSDetectCallback;
+
   /* USER CODE BEGIN BSP_USBPD_PWR_RegisterVBUSDetectCallback */
   /* Check if instance is valid       */
   int32_t ret = BSP_ERROR_FEATURE_NOT_SUPPORTED;
@@ -738,6 +759,8 @@ __weak int32_t BSP_USBPD_PWR_VBUSIsOn(uint32_t Instance, uint8_t *pState)
   */
 __weak int32_t BSP_USBPD_PWR_VCCSetState(uint32_t Instance, uint32_t State)
 {
+  (void) State;
+
   /* USER CODE BEGIN BSP_USBPD_PWR_VCCSetState */
   /* Check if instance is valid       */
   int32_t ret = BSP_ERROR_NONE;
@@ -766,9 +789,9 @@ __weak int32_t BSP_USBPD_PWR_VCCSetState(uint32_t Instance, uint32_t State)
   */
 __weak void BSP_USBPD_PWR_EventCallback(uint32_t Instance)
 {
-  /* USER CODE BEGIN BSP_USBPD_PWR_EventCallback */
+  (void) Instance;
+
   PWR_DEBUG_TRACE(Instance, "ADVICE: Update BSP_USBPD_PWR_EventCallback");
-  /* USER CODE END BSP_USBPD_PWR_EventCallback */
 }
 
 /**

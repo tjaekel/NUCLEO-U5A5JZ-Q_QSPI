@@ -143,9 +143,7 @@ void USBPD_DPM_WaitForTime(uint32_t Time)
   */
 void USBPD_DPM_UserExecute(void const *argument)
 {
-/* USER CODE BEGIN USBPD_DPM_UserExecute */
-
-/* USER CODE END USBPD_DPM_UserExecute */
+	(void) argument;
 }
 
 /**
@@ -156,9 +154,10 @@ void USBPD_DPM_UserExecute(void const *argument)
   */
 void USBPD_DPM_UserCableDetection(uint8_t PortNum, USBPD_CAD_EVENT State)
 {
-	/* USER CODE BEGIN USBPD_DPM_UserCableDetection */
+	(void) State;
+	(void) PortNum;
+
 	DPM_USER_DEBUG_TRACE(PortNum, "ADVICE: update USBPD_DPM_UserCableDetection");
-	/* USER CODE END USBPD_DPM_UserCableDetection */
 }
 
 /**

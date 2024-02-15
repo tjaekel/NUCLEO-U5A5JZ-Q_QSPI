@@ -893,6 +893,7 @@ void HAL_PWR_ConfigAttributes(uint32_t Item, uint32_t Attributes)
   */
 HAL_StatusTypeDef HAL_PWR_GetConfigAttributes(uint32_t Item, uint32_t *pAttributes)
 {
+  (void) Item;
   uint32_t attributes;
 
   /* Check attribute pointer */

@@ -1237,9 +1237,9 @@ HAL_StatusTypeDef HAL_OSPI_SPITransaction(OSPI_HandleTypeDef *hospi, uint8_t *pD
 	          break;
 	        }
 
-	        ////*hospi->pBuffPtr = *((__IO uint8_t *)data_reg);	//XXXX read and write parallel not supported
 	        if (i == 0)
 	        {
+	        	/* on first iteration we get CMD and one byte! */
 	        	while ( ! __HAL_SPI_GET_FLAG(&hspi3, SPI_FLAG_RXP)) {;}
 	        	*(hospi->pBuffPtr - 1) = SPI3->RXDR;
 	        	while ( ! __HAL_SPI_GET_FLAG(&hspi3, SPI_FLAG_RXP)) {;}

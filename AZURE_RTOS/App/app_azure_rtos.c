@@ -50,6 +50,8 @@ static TX_BYTE_POOL usbpd_app_byte_pool;
   */
 VOID tx_application_define(VOID *first_unused_memory)
 {
+  (void)first_unused_memory;
+
 #if (USE_STATIC_ALLOCATION == 1)
   UINT status = TX_SUCCESS;
   VOID *memory_ptr;

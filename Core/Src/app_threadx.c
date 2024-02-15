@@ -25,6 +25,7 @@
   */
 UINT App_ThreadX_Init(VOID *memory_ptr)
 {
+  (void)memory_ptr;
   UINT ret = TX_SUCCESS;
 
   return ret;

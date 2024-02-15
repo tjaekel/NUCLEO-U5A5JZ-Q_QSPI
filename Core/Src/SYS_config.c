@@ -14,7 +14,7 @@ const tCFGparams defaultCFGparams = {
 		.key 			= CFG_KEY_VALID,
 
 		/* QSPI defaults */
-		.QSPIdiv		= 16,			// 1: QSPI divider
+		.QSPIdiv		= 20,			// 1: QSPI divider
 		.QSPImode		= 3,			// 2: QSPI peripheral: PHA and POL, SPI mode 0..3
 		.QSPIaddr		= 4,			// 3: QSPI peripheral: number ADDR bytes
 		.QSPIalt		= 3,			// 4: QSPI peripheral: number ALL bytes
@@ -22,11 +22,11 @@ const tCFGparams defaultCFGparams = {
 		.QSPIshift		= 0,			// 6: QSPI peripheral: additional 1/2 clock shift
 		.QSPIqCycle 	= 0,			// 7: QSPI peripheral: quarter cycle hold shift
 		.QSPIdlyb		= 0,			// 8: QSPI peripheral: DLYB used
-		.QSPIspeed		= 0,			// 9: QSPI GPIO speed: 0..3
+		.QSPIspeed		= 3,			// 9: QSPI GPIO speed: 0..3
 		.DLYBunit		= 0,			//10: DLYB unit: 0.128
 		.DLYBphase		= 0,			//11: DLYB phase: 0..12 [3:0] !
 
-			/* debug and other sys config */
+		/* debug and other sys config */
 		.Debug			= 0,			//12: debug flags
 		.CfgFlags		= 0				//13: config flags
 };
@@ -104,5 +104,5 @@ void SYSINFO_print(EResultOut out)
 	else
 		print_log(out, (const char *)"USB VCP\r\n");
 	ADC_RunOnce(out, 1);
-	print_log(out, (const char *)"volt range : %ld\r\n", HAL_PWREx_GetVoltageRange() >> 16);
+	////print_log(out, (const char *)"volt range : %ld\r\n", 4 - (HAL_PWREx_GetVoltageRange() >> 16));
 }

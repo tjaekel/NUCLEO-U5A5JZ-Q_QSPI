@@ -14,6 +14,9 @@
 #include "SYS_config.h"
 #include "QSPI.h"
 #include "temp_sensor.h"
+#ifndef NUCLEO_BOARD
+#include "i2c3_flash.h"
+#endif
 
 #include "app_azure_rtos.h"		/* for delay */
 
@@ -106,8 +109,14 @@ ECMD_DEC_Status CMD_debug(TCMD_DEC_Results *res, EResultOut out);
 ECMD_DEC_Status CMD_delay(TCMD_DEC_Results *res, EResultOut out);
 ECMD_DEC_Status CMD_usr(TCMD_DEC_Results *res, EResultOut out);
 ECMD_DEC_Status CMD_led(TCMD_DEC_Results *res, EResultOut out);
+#ifndef NUCLEO_BOARD
+ECMD_DEC_Status CMD_flashr(TCMD_DEC_Results *res, EResultOut out);
+ECMD_DEC_Status CMD_flashw(TCMD_DEC_Results *res, EResultOut out);
+#endif
 
 ECMD_DEC_Status CMD_qspi(TCMD_DEC_Results *res, EResultOut out);
+ECMD_DEC_Status CMD_rawspi(TCMD_DEC_Results *res, EResultOut out);
+ECMD_DEC_Status CMD_sqspi(TCMD_DEC_Results *res, EResultOut out);
 ECMD_DEC_Status CMD_qspideinit(TCMD_DEC_Results *res, EResultOut out);
 ECMD_DEC_Status CMD_qspiclk(TCMD_DEC_Results *res, EResultOut out);
 ECMD_DEC_Status CMD_cid(TCMD_DEC_Results *res, EResultOut out);
@@ -165,6 +174,18 @@ const TCMD_DEC_Command Commands[] = {
 				.help = (const char *)"led off, on1, on2 [0..3]",
 				.func = CMD_led
 		},
+#ifndef NUCLEO_BOARD
+		{
+				.cmd = (const char *)"flashr",
+				.help = (const char *)"read flash <addr> <numbytes>",
+				.func = CMD_flashr
+		},
+		{
+				.cmd = (const char *)"flashw",
+				.help = (const char *)"write flash <addr> <byte> ...",
+				.func = CMD_flashw
+		},
+#endif
 
 		/* chip specific */
 		{
@@ -173,13 +194,23 @@ const TCMD_DEC_Command Commands[] = {
 				.func = CMD_qspi
 		},
 		{
+				.cmd = (const char *)"rawspi",
+				.help = (const char *)"rawspi <byte> ...",
+				.func = CMD_rawspi
+		},
+		{
+				.cmd = (const char *)"sqspi",
+				.help = (const char *)"sqspi [0|1..3] get or select active QSPI NCSs",
+				.func = CMD_sqspi
+		},
+		{
 				.cmd = (const char *)"qspideinit",
 				.help = (const char *)"uninitialize QSPI (release GPIO pins)",
 				.func = CMD_qspideinit
 		},
 		{
 				.cmd = (const char *)"qspiclk",
-				.help = (const char *)"get or set QSDPI clk divider [0|1..255]",
+				.help = (const char *)"get or set QSPI clk divider [0|1..255]",
 				.func = CMD_qspiclk
 		},
 		{
@@ -762,6 +793,21 @@ ECMD_DEC_Status CMD_usr(TCMD_DEC_Results *res, EResultOut out)
 	return CMD_DEC_OK;
 }
 
+ECMD_DEC_Status CMD_sqspi(TCMD_DEC_Results *res, EResultOut out)
+{
+	(void)out;
+
+	if (res->val[0] == 0)
+	{
+		print_log(out, "QSPI NCS: %ld\r\n", QSPI_GetQSPI());
+		return CMD_DEC_OK;
+	}
+
+	QSPI_SetQSPI(res->val[0]);
+
+	return CMD_DEC_OK;
+}
+
 ECMD_DEC_Status CMD_qspi(TCMD_DEC_Results *res, EResultOut out)
 {
 	unsigned long numRead = 0;			//default is 0
@@ -889,8 +935,9 @@ ECMD_DEC_Status CMD_test(TCMD_DEC_Results *res, EResultOut out)
 {
 	(void)res;
 	(void)out;
+#if 0
 	static unsigned char spiTx[512];
-#if 1
+
 	unsigned long i;
 
 	if (res->num < 2)
@@ -927,5 +974,84 @@ ECMD_DEC_Status CMD_led(TCMD_DEC_Results *res, EResultOut out)
 
 	LED_Status((int)res->val[0]);
 
+	return CMD_DEC_OK;
+}
+
+#ifndef NUCLEO_BOARD
+ECMD_DEC_Status CMD_flashr(TCMD_DEC_Results *res, EResultOut out)
+{
+	unsigned char *b;
+
+	if (res->val[1] == 0)
+		return CMD_DEC_INVPARAM;
+
+	b = (unsigned char *)MEM_PoolAlloc(MEM_POOL_SEG_SIZE);
+	if ( !b )
+		return CMD_DEC_OOMEM;
+
+	if (FLASH_Read(res->val[0], b, res->val[1]) == 0)
+	{
+		hex_dump(b, res->val[1], 1, out);
+	}
+
+	MEM_PoolFree(b);
+	return CMD_DEC_OK;
+}
+
+ECMD_DEC_Status CMD_flashw(TCMD_DEC_Results *res, EResultOut out)
+{
+	(void) out;
+	unsigned char *b;
+
+	unsigned long i;
+
+	if (res->num < 2)
+		return CMD_DEC_INVPARAM;
+
+	b = (unsigned char *)MEM_PoolAlloc(MEM_POOL_SEG_SIZE);
+	if ( !b )
+		return CMD_DEC_OOMEM;
+
+	for (i = 0; i < res->num - 1; i++)
+	{
+		b[i] = (unsigned char)res->val[1 + i];
+	}
+
+	if (FLASH_Write(res->val[0], b, res->num - 1) != 0)
+	{
+		MEM_PoolFree(b);
+		return CMD_DEC_ERROR;
+	}
+
+	MEM_PoolFree(b);
+	return CMD_DEC_OK;
+}
+#endif
+
+ECMD_DEC_Status CMD_rawspi(TCMD_DEC_Results *res, EResultOut out)
+{
+	(void)res;
+	(void)out;
+	unsigned char *spiTx;
+	unsigned long i;
+
+	if (res->num < 2)
+		return CMD_DEC_INVPARAM;
+
+	spiTx = (unsigned char *)MEM_PoolAlloc(MEM_POOL_SEG_SIZE);
+	if ( ! spiTx )
+		return CMD_DEC_OOMEM;
+
+	for (i = 0; i < res->num; i++)
+		spiTx[i] = (unsigned char)res->val[i];
+
+	OSPI_SPITransaction(spiTx, res->num);
+	for (i = 0; i < res->num; i++)
+	{
+		print_log(out, "%02x ", spiTx[i]);
+	}
+	print_log(out, "\r\n");
+
+	MEM_PoolFree(spiTx);
 	return CMD_DEC_OK;
 }

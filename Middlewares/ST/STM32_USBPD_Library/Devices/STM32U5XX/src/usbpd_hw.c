@@ -28,11 +28,14 @@
 
 UCPD_TypeDef *USBPD_HW_GetUSPDInstance(uint8_t PortNum)
 {
+  (void) PortNum;
   return UCPD_INSTANCE0;
 }
 
 DMA_Channel_TypeDef *USBPD_HW_Init_DMARxInstance(uint8_t PortNum)
 {
+  (void) PortNum;
+
   /* Enable the clock */
   UCPDDMA_INSTANCE0_CLOCKENABLE_RX;
 
@@ -54,6 +57,8 @@ void USBPD_HW_DeInit_DMARxInstance(uint8_t PortNum)
 
 DMA_Channel_TypeDef *USBPD_HW_Init_DMATxInstance(uint8_t PortNum)
 {
+  (void)PortNum;
+
   /* Enable the clock */
   UCPDDMA_INSTANCE0_CLOCKENABLE_TX;
 

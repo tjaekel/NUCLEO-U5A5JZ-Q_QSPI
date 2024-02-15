@@ -95,6 +95,7 @@ USBPD_StatusTypeDef HW_IF_PWR_Enable(uint8_t PortNum, USBPD_FunctionalState stat
 
 USBPD_FunctionalState HW_IF_PWR_VBUSIsEnabled(uint8_t PortNum)
 {
+  (void)PortNum;
 #if defined(_SRC)||defined(_DRP)
   uint8_t _state;
   BSP_USBPD_PWR_VBUSIsOn(PortNum, &_state);

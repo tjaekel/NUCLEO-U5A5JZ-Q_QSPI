@@ -12,7 +12,19 @@
 
 extern SPI_HandleTypeDef  hspi3;
 
-uint8_t OSPI_WriteReadTransaction(OSPI_HandleTypeDef *hospi, unsigned long *params, unsigned long numParams, unsigned long numRead)
+static unsigned long selQSPI = 1;
+
+void QSPI_SetQSPI(unsigned long x)
+{
+	selQSPI = x;
+}
+
+unsigned long QSPI_GetQSPI(void)
+{
+	return selQSPI;
+}
+
+uint8_t OSPI_WriteReadTransaction(int device, OSPI_HandleTypeDef *hospi, unsigned long *params, unsigned long numParams, unsigned long numRead)
 {
   OSPI_RegularCmdTypeDef sCommand = {0};
   unsigned long x, i;
@@ -72,14 +84,17 @@ uint8_t OSPI_WriteReadTransaction(OSPI_HandleTypeDef *hospi, unsigned long *para
 	  sCommand.NbData         = x * 4;
   }
 
-  sCommand.DataDtrMode        = HAL_OSPI_DATA_DTR_DISABLE;
+  sCommand.DataDtrMode        = HAL_OSPI_DATA_DTR_DISABLE;		//DQS even does not work in DTR mode
   sCommand.DummyCycles        = 0;
   if (numRead)
   {
 	  sCommand.DummyCycles    = gCFGparams.QSPIturn;
   }
+
   sCommand.DQSMode            = HAL_OSPI_DQS_DISABLE;			//HAL_OSPI_DQS_ENABLE - does not work! - it will not finish
-  sCommand.SIOOMode           = HAL_OSPI_SIOO_INST_EVERY_CMD;	//HAL_OSPI_SIOO_INST_ONLY_FIRST_CMD;	//HAL_OSPI_SIOO_INST_EVERY_CMD;
+  sCommand.SIOOMode           = HAL_OSPI_SIOO_INST_EVERY_CMD;
+
+  ////HAL_OSPI_SetFifoThreshold(hospi, 32 - 4);
 
   /**
    * Remark: HAL_QSPI_Command sets all the parameter needed for entire transaction
@@ -94,8 +109,26 @@ uint8_t OSPI_WriteReadTransaction(OSPI_HandleTypeDef *hospi, unsigned long *para
 
   if (numRead)
   {
+#if 1
+	  if (device == 0x1)
+#ifdef NUCLEO_BOARD
+		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_2, GPIO_PIN_RESET);
+#else
+	  	  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
+#endif
+	  if (device == 0x2)
+		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_RESET);
+#endif
 	  if (HAL_OSPI_Receive(hospi, (uint8_t *)params, HAL_OSPI_TIMEOUT_DEFAULT_VALUE) != HAL_OK)
 	  {
+#if 1
+#ifdef NUCLEO_BOARD
+		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_2, GPIO_PIN_SET);
+#else
+		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_2, GPIO_PIN_SET);
+#endif
+		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_SET);
+#endif
 	    return -1;
 	  }
   }
@@ -103,12 +136,39 @@ uint8_t OSPI_WriteReadTransaction(OSPI_HandleTypeDef *hospi, unsigned long *para
   {
 	  if (i)
 	  {
+#if 1
+		  if ((device & 0x1) == 0x1)
+#ifdef NUCLEO_BOARD
+			  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_2, GPIO_PIN_RESET);
+#else
+		  	  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
+#endif
+		  if ((device & 0x2) == 0x2)
+			  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_RESET);
+#endif
 		  if (HAL_OSPI_Transmit(hospi, (uint8_t *)&params[i], HAL_OSPI_TIMEOUT_DEFAULT_VALUE) != HAL_OK)
 		  {
+#if 1
+#ifdef NUCLEO_BOARD
+			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_2, GPIO_PIN_SET);
+#else
+			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
+#endif
+			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_SET);
+#endif
 		 	return -1;
 		  }
 	  }
   }
+
+#if 1
+#ifdef NUCLEO_BOARD
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_2, GPIO_PIN_SET);
+#else
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
+#endif
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_SET);
+#endif
 
   return 1;
 }
@@ -118,7 +178,7 @@ uint8_t QSPI_Transaction(unsigned long *params, unsigned long numParams, unsigne
 	uint8_t e;
 	if (gCFGparams.CfgFlags & 0x1)
 		QSPI_ActivatePins();
-	e = OSPI_WriteReadTransaction(&hospi1, params, numParams, rdWords);
+	e = OSPI_WriteReadTransaction(selQSPI, &hospi1, params, numParams, rdWords);
 	if (gCFGparams.CfgFlags & 0x1)
 		QSPI_ReleasePins();
 
@@ -167,19 +227,58 @@ unsigned long QSPI_ReadChipID(EResultOut out)
 	params[0] = 0xE1;			/* CMD */
 	params[1] = 0;				/* ADDR */
 	params[2] = 0x00001E;		/* ALT */
-	/* noww turn around and read 5 words */
+	/* now turn around and read 5 words */
 
-	QSPI_Transaction(params, 0, 5);
-
-	if (gCFGparams.Debug & DBG_VERBOSE)
 	{
-		int i;
-		for (i = 0; i < 5; i++)
-			print_log(out, " %08lx", params[i]);
-		Generic_Send((uint8_t *)"\r\n", 2, out);
-	}
+		unsigned long sQSPI = QSPI_GetQSPI();
 
-	cid = params[3];
+		if ((sQSPI & 0x3) == 0x3)
+		{
+			/* it was a broadcast - split into two read transactions */
+			QSPI_SetQSPI(1);
+			QSPI_Transaction(params, 0, 5);
+
+			if (gCFGparams.Debug & DBG_VERBOSE)
+			{
+				int i;
+				for (i = 0; i < 5; i++)
+					print_log(out, " %08lx", params[i]);
+				Generic_Send((uint8_t *)"\r\n", 2, out);
+			}
+
+			params[0] = 0xE1;			/* CMD */
+			params[1] = 0;				/* ADDR */
+			params[2] = 0x00001E;		/* ALT */
+
+			QSPI_SetQSPI(2);
+			QSPI_Transaction(params, 0, 5);
+
+			if (gCFGparams.Debug & DBG_VERBOSE)
+			{
+				int i;
+				for (i = 0; i < 5; i++)
+					print_log(out, " %08lx", params[i]);
+				Generic_Send((uint8_t *)"\r\n", 2, out);
+			}
+
+			cid = params[3];			/* we return the 2nd CID */
+			QSPI_SetQSPI(sQSPI);		/* set back the original one */
+		}
+		else
+		{
+			QSPI_Transaction(params, 0, 5);
+
+			if (gCFGparams.Debug & DBG_VERBOSE)
+			{
+				int i;
+				for (i = 0; i < 5; i++)
+					print_log(out, " %08lx", params[i]);
+				Generic_Send((uint8_t *)"\r\n", 2, out);
+			}
+
+			cid = params[3];
+		}
+	}
 
 	MEM_PoolFree(params);
 	/* take the ChipID from response */
@@ -254,6 +353,8 @@ extern HAL_StatusTypeDef HAL_OSPI_SPITransaction(OSPI_HandleTypeDef *hospi, uint
 
 uint8_t OSPI_SPITransaction(unsigned char *bytes, unsigned long numParams)
 {
+  unsigned long device = QSPI_GetQSPI();
+
   OSPI_RegularCmdTypeDef sCommand = {0};
 
   sCommand.OperationType      = HAL_OSPI_OPTYPE_COMMON_CFG;
@@ -298,12 +399,32 @@ uint8_t OSPI_SPITransaction(unsigned char *bytes, unsigned long numParams)
   //NEW: SS in SW mode - NSS is high polarity:
   __HAL_SPI_ENABLE(&hspi3);
   SET_BIT(((SPI_HandleTypeDef *)&hspi3)->Instance->CR1, SPI_CR1_SSI);
+
+#if 1
+	  if (device == 0x1)
+#ifdef NUCLEO_BOARD
+		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_2, GPIO_PIN_RESET);
+#else
+	  	  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
+#endif
+	  if (device == 0x2)
+		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_RESET);
+#endif
   ////SET_BIT(((SPI_HandleTypeDef *)&hspi3)->Instance->CR1, SPI_CR1_CSTART);
 
   if (HAL_OSPI_SPITransaction(&hospi1, bytes, HAL_OSPI_TIMEOUT_DEFAULT_VALUE) != HAL_OK)
   {
 	return -1;
   }
+
+#if 1
+#ifdef NUCLEO_BOARD
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_2, GPIO_PIN_SET);
+#else
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
+#endif
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_SET);
+#endif
 
   /* disable SPI3 */
   CLEAR_BIT(((SPI_HandleTypeDef *)&hspi3)->Instance->CR1, SPI_CR1_SSI);

@@ -286,15 +286,10 @@ uint16_t USBD_Get_Interface_Number(uint8_t class_type, uint8_t interface_type)
   */
 uint16_t USBD_Get_Configuration_Number(uint8_t class_type, uint8_t interface_type)
 {
+  (void) class_type;
+  (void) interface_type;
+
   uint8_t cfg_num = 1U;
-
-  /* USER CODE BEGIN USBD_Get_CONFIGURATION_Number0 */
-
-  /* USER CODE BEGIN USBD_Get_CONFIGURATION_Number0 */
-
-  /* USER CODE BEGIN USBD_Get_CONFIGURATION_Number1 */
-
-  /* USER CODE BEGIN USBD_Get_CONFIGURATION_Number1 */
 
   return cfg_num;
 }

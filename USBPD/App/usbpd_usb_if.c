@@ -204,16 +204,16 @@ void USBPD_USBIF_Swap2Device(uint32_t PortNum)
 
 void USBPD_USBIF_DeviceSetBOSInfo(uint32_t PortNum, void *DataPtr)
 {
-/* USER CODE BEGIN USBPD_USBIF_DeviceSetBOSInfo */
+  (void) DataPtr;
+
   USBPD_TRACE_Add(USBPD_TRACE_DEBUG, PortNum, 0, (uint8_t *) "USBIF set BOS info", 18);
-/* USER CODE END USBPD_USBIF_DeviceSetBOSInfo */
 }
 
 void USBPD_USBIF_DeviceSetVDMInfo(uint32_t PortNum, void *DataPtr)
 {
-/* USER CODE BEGIN USBPD_USBIF_DeviceSetVDMInfo */
+  (void) DataPtr;
+
   USBPD_TRACE_Add(USBPD_TRACE_DEBUG, PortNum, 0, (uint8_t *) "USBIF set VDM info", 18);
-/* USER CODE END USBPD_USBIF_DeviceSetVDMInfo */
 }
 
 /* USER CODE BEGIN Exported functions */

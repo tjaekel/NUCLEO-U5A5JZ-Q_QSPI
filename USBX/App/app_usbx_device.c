@@ -250,6 +250,8 @@ UINT MX_USBX_Device_Init(VOID *memory_ptr)
   */
 static VOID app_ux_device_thread_entry(ULONG thread_input)
 {
+  (void) thread_input;
+
   /* USER CODE BEGIN app_ux_device_thread_entry */
 
   /* Initialization of USB device */

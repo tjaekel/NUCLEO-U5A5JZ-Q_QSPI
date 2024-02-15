@@ -15,6 +15,8 @@
 extern OSPI_HandleTypeDef hospi1;
 
 uint8_t QSPI_Transaction(unsigned long *params, unsigned long numParams, unsigned long rdWords);
+void QSPI_SetQSPI(unsigned long x);
+unsigned long QSPI_GetQSPI(void);
 unsigned long QSPI_SetClock(unsigned long div);
 unsigned long QSPI_ReadChipID(EResultOut out);
 void QSPI_DeInit(void);

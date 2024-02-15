@@ -39,6 +39,7 @@ OSPI_HandleTypeDef hospi1;
 SPI_HandleTypeDef  hspi3;
 UART_HandleTypeDef huart1;
 DMA_HandleTypeDef handle_GPDMA1_Channel0;
+I2C_HandleTypeDef hi2c3;
 
 #ifndef STM32U5A5xx
 PCD_HandleTypeDef hpcd_USB_OTG_FS;
@@ -62,6 +63,9 @@ static void MX_ADC1_Init(void);
 #endif
 void MX_OCTOSPI1_Init(void);
 void MX_SPI3_Init(void);
+#ifndef NUCLEO_BOARD
+static void MX_I2C3_Init(void);
+#endif
 
 /**
   * @brief  The application entry point.
@@ -84,10 +88,15 @@ int main(void)
   SystemPower_Config();
 
   /* Initialize all configured peripherals */
-  MX_GPIO_Init();
   MX_GPDMA1_Init();
   MX_ICACHE_Init();
   ////MX_DCACHE1_Init();	/* just for external memory */
+
+#ifndef NUCLE_BOARD
+  MX_I2C3_Init();
+#endif
+
+  MX_GPIO_Init();
   MX_USART1_UART_Init();
 #if 0
   MX_UCPD1_Init();
@@ -164,7 +173,7 @@ void SystemClock_Config(void)
 #ifdef NUCLEO_BOARD
   //16 MHz XTAL, NUCLEO board
   RCC_OscInitStruct.PLL.PLLM = 1;
-  RCC_OscInitStruct.PLL.PLLN = 20;	//
+  RCC_OscInitStruct.PLL.PLLN = 20;	//over-clocking MCU
   RCC_OscInitStruct.PLL.PLLP = 10; 	//32 MHz needed here - for USB OTG!
   RCC_OscInitStruct.PLL.PLLQ = 2;	//max. 200 MHz, for QSPI only! with 2 = 160 MHz
   RCC_OscInitStruct.PLL.PLLR = 2;	//160 MHz SYS clock
@@ -362,7 +371,7 @@ void MX_OCTOSPI1_Init(void)
 
   /* OCTOSPI1 parameter configuration*/
   hospi1.Instance = OCTOSPI1;
-  hospi1.Init.FifoThreshold = 1;
+  hospi1.Init.FifoThreshold = 4;			//was 1 - use max. FIFO size - 32BYTES! max. as 32-4
   hospi1.Init.DualQuad = HAL_OSPI_DUALQUAD_DISABLE;
   hospi1.Init.MemoryType = HAL_OSPI_MEMTYPE_MICRON;
   hospi1.Init.DeviceSize = 32;
@@ -393,6 +402,7 @@ void MX_OCTOSPI1_Init(void)
   sOspiManagerCfg.ClkPort = 1;
   sOspiManagerCfg.NCSPort = 1;
   sOspiManagerCfg.IOLowPort = HAL_OSPIM_IOPORT_1_LOW;
+  sOspiManagerCfg.DQSPort = 1;		//DQS does not work in SDR mode!
   if (HAL_OSPIM_Config(&hospi1, &sOspiManagerCfg, HAL_OSPI_TIMEOUT_DEFAULT_VALUE) != HAL_OK)
   {
     Error_Handler();
@@ -780,7 +790,7 @@ void MX_SPI3_Init(void)
   hspi3.Init.MasterInterDataIdleness = SPI_MASTER_INTERDATA_IDLENESS_00CYCLE;
   hspi3.Init.MasterReceiverAutoSusp = SPI_MASTER_RX_AUTOSUSP_DISABLE;
   hspi3.Init.MasterKeepIOState = SPI_MASTER_KEEP_IO_STATE_DISABLE;
-  hspi3.Init.IOSwap = SPI_IO_SWAP_ENABLE;	//SPI_IO_SWAP_DISABLE;
+  hspi3.Init.IOSwap = SPI_IO_SWAP_ENABLE;	//SPI_IO_SWAP_DISABLE; //WE NEED BECAUSE OF SCHEMATICS!
   hspi3.Init.ReadyMasterManagement = SPI_RDY_MASTER_MANAGEMENT_INTERNALLY;
   hspi3.Init.ReadyPolarity = SPI_RDY_POLARITY_HIGH;
   if (HAL_SPI_Init(&hspi3) != HAL_OK)
@@ -796,6 +806,52 @@ void MX_SPI3_Init(void)
   }
 
   ////__HAL_SPI_ENABLE(&hspi3);
+}
+#endif
+
+#ifndef NUYCLEO_BOARD
+/**
+  * @brief I2C3 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_I2C3_Init(void)
+{
+  /* used for I2C flash */
+  hi2c3.Instance = I2C3;
+  hi2c3.Init.Timing = 0x00C01F67;
+  hi2c3.Init.OwnAddress1 = 0xA0;			//we are not slave, any should be fine
+  hi2c3.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+  hi2c3.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+  hi2c3.Init.OwnAddress2 = 0;
+  hi2c3.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
+  hi2c3.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+  hi2c3.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+  if (HAL_I2C_Init(&hi2c3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure Analogue filter
+  */
+  if (HAL_I2CEx_ConfigAnalogFilter(&hi2c3, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure Digital filter
+  */
+  if (HAL_I2CEx_ConfigDigitalFilter(&hi2c3, 0) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** I2C Fast mode Plus enable
+  */
+  if (HAL_I2CEx_ConfigFastModePlus(&hi2c3, I2C_FASTMODEPLUS_ENABLE) != HAL_OK)
+  {
+    Error_Handler();
+  }
 }
 #endif
 

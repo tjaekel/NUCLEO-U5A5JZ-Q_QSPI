@@ -1672,6 +1672,9 @@ HAL_StatusTypeDef HAL_RCC_ClockConfig(const RCC_ClkInitTypeDef   *const pRCC_Clk
   */
 void HAL_RCC_MCOConfig(uint32_t RCC_MCOx, uint32_t RCC_MCOSource, uint32_t RCC_MCODiv)
 {
+  (void) RCC_MCODiv;
+  (void) RCC_MCOx;
+
   GPIO_InitTypeDef gpio_initstruct;
   /* Check the parameters */
   assert_param(IS_RCC_MCO(RCC_MCOx));
@@ -2086,6 +2089,9 @@ __weak void HAL_RCC_CSSCallback(void)
   */
 void HAL_RCC_ConfigAttributes(uint32_t Item, uint32_t Attributes)
 {
+  (void) Item;
+
+
   /* Check the parameters */
   assert_param(IS_RCC_ITEM_ATTRIBUTES(Item));
   assert_param(IS_RCC_ATTRIBUTES(Attributes));
@@ -2143,6 +2149,7 @@ void HAL_RCC_ConfigAttributes(uint32_t Item, uint32_t Attributes)
   */
 HAL_StatusTypeDef HAL_RCC_GetConfigAttributes(uint32_t Item, uint32_t *pAttributes)
 {
+  (void) Item;
   uint32_t attributes;
 
   /* Check null pointer */

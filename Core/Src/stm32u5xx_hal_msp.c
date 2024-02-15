@@ -99,15 +99,52 @@ void HAL_OSPI_MspInit(OSPI_HandleTypeDef* hospi)
   RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
   if(hospi->Instance==OCTOSPI1)
   {
-
   /** Initializes the peripherals clock
   */
+
+#if 0
     PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_OSPI;
     PeriphClkInit.OspiClockSelection = RCC_OSPICLKSOURCE_SYSCLK;	//RCC_OSPICLKSOURCE_PLL1;	//RCC_OSPICLKSOURCE_SYSCLK; 160 MHz, could be max. 200 MHz
     if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
     {
       Error_Handler();
     }
+#else
+#define OK
+#ifdef OK
+    PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_OSPI;
+    PeriphClkInit.OspiClockSelection = RCC_OSPICLKSOURCE_PLL2;
+    PeriphClkInit.PLL2.PLL2Source = RCC_PLLSOURCE_MSI;		//HSE fails with TIME_OUT!!!!!
+    PeriphClkInit.PLL2.PLL2M = 1;
+    PeriphClkInit.PLL2.PLL2N = 40;		//40 = 160 MHz, 50 = 200 MHz - IT FAILS!!!!
+    PeriphClkInit.PLL2.PLL2P = 2;
+    PeriphClkInit.PLL2.PLL2Q = 1;
+    PeriphClkInit.PLL2.PLL2R = 2;
+    PeriphClkInit.PLL2.PLL2RGE = RCC_PLLVCIRANGE_0;
+    PeriphClkInit.PLL2.PLL2FRACN = 0;
+    PeriphClkInit.PLL2.PLL2ClockOut = RCC_PLL2_DIVQ;
+    if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
+    {
+       Error_Handler();
+    }
+#else
+    PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_OSPI;
+    PeriphClkInit.OspiClockSelection = RCC_OSPICLKSOURCE_PLL2;
+    PeriphClkInit.PLL2.PLL2Source = RCC_PLLSOURCE_HSE;		//THIS FAILS WITH TIMEOUT!!!!
+    PeriphClkInit.PLL2.PLL2M = 2;
+    PeriphClkInit.PLL2.PLL2N = 50;
+    PeriphClkInit.PLL2.PLL2P = 2;
+    PeriphClkInit.PLL2.PLL2Q = 3;
+    PeriphClkInit.PLL2.PLL2R = 2;
+    PeriphClkInit.PLL2.PLL2RGE = RCC_PLLVCIRANGE_1;
+    PeriphClkInit.PLL2.PLL2FRACN = 0;
+    PeriphClkInit.PLL2.PLL2ClockOut = RCC_PLL2_DIVQ;
+    if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
+    {
+      Error_Handler();
+    }
+#endif
+#endif
 
     /* Peripheral clock enable */
     __HAL_RCC_OSPIM_CLK_ENABLE();
@@ -116,21 +153,46 @@ void HAL_OSPI_MspInit(OSPI_HandleTypeDef* hospi)
     __HAL_RCC_GPIOA_CLK_ENABLE();
     __HAL_RCC_GPIOB_CLK_ENABLE();
     __HAL_RCC_GPIOE_CLK_ENABLE();
+#ifdef NUCLEO_BOARD
     /**OCTOSPI1 GPIO Configuration
-    PA2     ------> OCTOSPIM_P1_NCS
-    PB0     ------> OCTOSPIM_P1_IO1
+    PA2      ------> OCTOSPIM_P1_NCS
+    PB0      ------> OCTOSPIM_P1_IO1
     PE12     ------> OCTOSPIM_P1_IO0
     PE14     ------> OCTOSPIM_P1_IO2
     PE15     ------> OCTOSPIM_P1_IO3
     PB10     ------> OCTOSPIM_P1_CLK
-    PA1      ------> OCTOSPIM_P1_DQS - not working in SDR mode
+    PA1      ------> OCTOSPIM_P1_DQS - not working in SDR mode, used as NCS1
     */
+
+#if 1
+    /* we use PA2 as NCCS1, PA1 as NCCS2 - in SW GPIO mode */
+
+    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_2, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_SET);
+
+    /*Configure GPIO pin : OCTOSPI NCS signals */
+    GPIO_InitStruct.Pin = GPIO_PIN_1 | GPIO_PIN_2;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = gCFGparams.QSPIspeed;		//GPIO_SPEED_FREQ_LOW;
+    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+#else
+    /* HW NCS signal */
     GPIO_InitStruct.Pin = GPIO_PIN_2;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = gCFGparams.QSPIspeed;		//GPIO_SPEED_FREQ_VERY_HIGH;
     GPIO_InitStruct.Alternate = GPIO_AF10_OCTOSPI1;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+    /* DQS signal */
+    GPIO_InitStruct.Pin = GPIO_PIN_1;
+    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = gCFGparams.QSPIspeed;		//GPIO_SPEED_FREQ_VERY_HIGH;
+    GPIO_InitStruct.Alternate = GPIO_AF10_OCTOSPI1;
+    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+#endif
 
     GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_10;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
@@ -145,13 +207,61 @@ void HAL_OSPI_MspInit(OSPI_HandleTypeDef* hospi)
     GPIO_InitStruct.Speed = gCFGparams.QSPIspeed;		//GPIO_SPEED_FREQ_VERY_HIGH;
     GPIO_InitStruct.Alternate = GPIO_AF10_OCTOSPI1;
     HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
+#else
+    /**OCTOSPI1 GPIO Configuration - my PCB board
+    PA4      ------> OCTOSPIM_P1_NCS
+    PB0      ------> OCTOSPIM_P1_IO1
+    PB1      ------> OCTOSPIM_P1_IO0
+    PA7      ------> OCTOSPIM_P1_IO2
+    PA6      ------> OCTOSPIM_P1_IO3
+    PA3      ------> OCTOSPIM_P1_CLK
+    PA1      ------> OCTOSPIM_P1_DQS - not working in SDR mode, used as NCS1
+    */
 
+#if 1
+    /* we use PA4 as NCCS1, PA1 as NCCS2 - in SW GPIO mode */
+
+    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_SET);
+
+    /*Configure GPIO pin : OCTOSPI NCS signals */
+    GPIO_InitStruct.Pin = GPIO_PIN_1 | GPIO_PIN_4;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = gCFGparams.QSPIspeed;		//GPIO_SPEED_FREQ_LOW;
+    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+#else
+    /* HW NCS signal */
+    GPIO_InitStruct.Pin = GPIO_PIN_4;
+    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = gCFGparams.QSPIspeed;		//GPIO_SPEED_FREQ_VERY_HIGH;
+    GPIO_InitStruct.Alternate = GPIO_AF10_OCTOSPI1;
+    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+    /* DQS signal */
     GPIO_InitStruct.Pin = GPIO_PIN_1;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = gCFGparams.QSPIspeed;		//GPIO_SPEED_FREQ_VERY_HIGH;
     GPIO_InitStruct.Alternate = GPIO_AF10_OCTOSPI1;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+#endif
+
+    GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1;
+    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = gCFGparams.QSPIspeed;		//GPIO_SPEED_FREQ_VERY_HIGH;
+    GPIO_InitStruct.Alternate = GPIO_AF10_OCTOSPI1;
+    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+    GPIO_InitStruct.Pin = GPIO_PIN_3|GPIO_PIN_6|GPIO_PIN_7;
+    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = gCFGparams.QSPIspeed;		//GPIO_SPEED_FREQ_VERY_HIGH;
+    GPIO_InitStruct.Alternate = GPIO_AF10_OCTOSPI1;
+    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+#endif
   }
 }
 
@@ -302,7 +412,7 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef* hspi)
 	if(hspi->Instance == SPI3)
 	{
 		PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_SPI3;
-		PeriphClkInit.Spi1ClockSelection = RCC_SPI1CLKSOURCE_SYSCLK;	//RCC_SPI1CLKSOURCE_PCLK2;		//RCC_SPI1CLKSOURCE_SYSCLK;
+		PeriphClkInit.Spi1ClockSelection = RCC_SPI1CLKSOURCE_PCLK2;	//RCC_SPI1CLKSOURCE_SYSCLK;	//RCC_SPI1CLKSOURCE_PCLK2;		//RCC_SPI1CLKSOURCE_SYSCLK;
 		if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
 		{
 			Error_Handler();
@@ -490,6 +600,69 @@ void HAL_PCD_MspDeInit(PCD_HandleTypeDef* hpcd)
 
     /* USB_OTG_HS interrupt DeInit */
     HAL_NVIC_DisableIRQ(OTG_HS_IRQn);
+  }
+}
+#endif
+
+#ifndef NUCLEO_BOARD
+/**
+* @brief I2C MSP Initialization
+* This function configures the hardware resources used in this example
+* @param hi2c: I2C handle pointer
+* @retval None
+*/
+void HAL_I2C_MspInit(I2C_HandleTypeDef* hi2c)
+{
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+  RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
+  if(hi2c->Instance==I2C3)
+  {
+  /** Initializes the peripherals clock
+  */
+    PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_I2C3;
+    PeriphClkInit.I2c1ClockSelection = RCC_I2C1CLKSOURCE_PCLK1;
+    if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
+    {
+      Error_Handler();
+    }
+
+    __HAL_RCC_GPIOC_CLK_ENABLE();
+    /**I2C3 GPIO Configuration
+    PC0     ------> I2C3_SCL
+    PC1     ------> I2C3_SDA
+    */
+    GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1;
+    GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
+    GPIO_InitStruct.Pull = GPIO_PULLUP;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct.Alternate = GPIO_AF4_I2C3;
+    HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+    /* Peripheral clock enable */
+    __HAL_RCC_I2C3_CLK_ENABLE();
+  }
+}
+
+/**
+* @brief I2C MSP De-Initialization
+* This function freeze the hardware resources used in this example
+* @param hi2c: I2C handle pointer
+* @retval None
+*/
+void HAL_I2C_MspDeInit(I2C_HandleTypeDef* hi2c)
+{
+  if(hi2c->Instance==I2C3)
+  {
+    /* Peripheral clock disable */
+    __HAL_RCC_I2C3_CLK_DISABLE();
+
+    /**I2C1 GPIO Configuration
+    PC0     ------> I2C3_SCL
+    PC1     ------> I2C3_SDA
+    */
+    HAL_GPIO_DeInit(GPIOC, GPIO_PIN_0);
+
+    HAL_GPIO_DeInit(GPIOC, GPIO_PIN_1);
   }
 }
 #endif
