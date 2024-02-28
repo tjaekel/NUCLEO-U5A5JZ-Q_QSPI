@@ -25,6 +25,8 @@
 #include "cmd_dec.h"
 #include "temp_sensor.h"
 
+#include "linked_list.h"
+
 /** TODO
  * a) UART1 on 1V8 does not work: even with OpenDrain it fails
  * b) if UART1 has received anything (and echoed back) - the VCP UART hangs!
@@ -39,6 +41,16 @@ OSPI_HandleTypeDef hospi1;
 SPI_HandleTypeDef  hspi3;
 UART_HandleTypeDef huart1;
 DMA_HandleTypeDef handle_GPDMA1_Channel0;
+#ifdef SPI3_DMA
+#if 0
+DMA_HandleTypeDef handle_GPDMA1_Channel7;		//SPI Tx
+#endif
+DMA_HandleTypeDef handle_GPDMA1_Channel6;		//SPI Rx
+#endif
+#ifdef QSPI_DMA
+DMA_HandleTypeDef handle_GPDMA1_Channel12;		//QSPI DMA
+#endif
+
 I2C_HandleTypeDef hi2c3;
 
 #ifndef STM32U5A5xx
@@ -52,7 +64,7 @@ static void SystemPower_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_GPDMA1_Init(void);
 static void MX_ICACHE_Init(void);
-#if 0
+#if 1
 static void MX_DCACHE1_Init(void);
 #endif
 #if 0
@@ -90,9 +102,9 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPDMA1_Init();
   MX_ICACHE_Init();
-  ////MX_DCACHE1_Init();	/* just for external memory */
+  MX_DCACHE1_Init();	/* just for external memory */
 
-#ifndef NUCLE_BOARD
+#ifndef NUCLEO_BOARD
   MX_I2C3_Init();
 #endif
 
@@ -322,6 +334,52 @@ static void MX_GPDMA1_Init(void)
     HAL_NVIC_SetPriority(GPDMA1_Channel5_IRQn, 0, 0);
     HAL_NVIC_EnableIRQ(GPDMA1_Channel5_IRQn);
 #endif
+
+#ifdef SPI3_DMA
+    /* SPI3 slave with DMA */
+    HAL_NVIC_SetPriority(GPDMA1_Channel6_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(GPDMA1_Channel6_IRQn);
+#if 0
+    //Channel 7 is SPI Tx
+    HAL_NVIC_SetPriority(GPDMA1_Channel7_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(GPDMA1_Channel7_IRQn);
+
+    handle_GPDMA1_Channel7.Instance = GPDMA1_Channel7;
+    handle_GPDMA1_Channel7.InitLinkedList.Priority = DMA_LOW_PRIORITY_HIGH_WEIGHT;
+    handle_GPDMA1_Channel7.InitLinkedList.LinkStepMode = DMA_LSM_FULL_EXECUTION;
+    handle_GPDMA1_Channel7.InitLinkedList.LinkAllocatedPort = DMA_LINK_ALLOCATED_PORT1;
+    handle_GPDMA1_Channel7.InitLinkedList.TransferEventMode = DMA_TCEM_LAST_LL_ITEM_TRANSFER;
+    handle_GPDMA1_Channel7.InitLinkedList.LinkedListMode = DMA_LINKEDLIST_NORMAL;
+    if (HAL_DMAEx_List_Init(&handle_GPDMA1_Channel7) != HAL_OK)
+    {
+        Error_Handler();
+    }
+    if (HAL_DMA_ConfigChannelAttributes(&handle_GPDMA1_Channel7, DMA_CHANNEL_NPRIV) != HAL_OK)
+    {
+        Error_Handler();
+    }
+#endif
+    handle_GPDMA1_Channel6.Instance = GPDMA1_Channel6;
+    handle_GPDMA1_Channel6.InitLinkedList.Priority = DMA_LOW_PRIORITY_HIGH_WEIGHT;
+    handle_GPDMA1_Channel6.InitLinkedList.LinkStepMode = DMA_LSM_FULL_EXECUTION;
+    handle_GPDMA1_Channel6.InitLinkedList.LinkAllocatedPort = DMA_LINK_ALLOCATED_PORT1;
+    handle_GPDMA1_Channel6.InitLinkedList.TransferEventMode = DMA_TCEM_LAST_LL_ITEM_TRANSFER;
+    handle_GPDMA1_Channel6.InitLinkedList.LinkedListMode = DMA_LINKEDLIST_NORMAL;
+    if (HAL_DMAEx_List_Init(&handle_GPDMA1_Channel6) != HAL_OK)
+    {
+        Error_Handler();
+    }
+    if (HAL_DMA_ConfigChannelAttributes(&handle_GPDMA1_Channel6, DMA_CHANNEL_NPRIV) != HAL_OK)
+    {
+        Error_Handler();
+    }
+#endif
+
+#ifdef QSPI_DMA
+    /* QSPI DMA */
+    HAL_NVIC_SetPriority(GPDMA1_Channel12_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(GPDMA1_Channel12_IRQn);
+#endif
 }
 
 /**
@@ -347,7 +405,7 @@ static void MX_ICACHE_Init(void)
   * @param None
   * @retval None
   */
-#if 0
+#if 1
 static void MX_DCACHE1_Init(void)
 {
   hdcache1.Instance = DCACHE1;
@@ -698,59 +756,6 @@ static void MX_GPIO_Init(void)
 #endif
 }
 
-#if 0
-void MX_SPI3_Init(void)
-{
-  /* SPI4 parameter configuration*/
-  hspi3.Instance = SPI3;
-  hspi3.Init.Mode = SPI_MODE_SLAVE;
-  hspi3.Init.Direction = SPI_DIRECTION_2LINES_RXONLY;
-
-  /* we keep 8bit = byte, WordSize and Endian used on commands */
-  hspi3.Init.DataSize = SPI_DATASIZE_8BIT;
-
-  switch (gCFGparams.QSPImode)
-  {
-  case 0: hspi3.Init.CLKPolarity = SPI_POLARITY_LOW;
-  	  	  hspi3.Init.CLKPhase = SPI_PHASE_1EDGE;
-  	  	  break;
-  case 1: hspi3.Init.CLKPolarity = SPI_POLARITY_LOW;
-  	  	  hspi3.Init.CLKPhase = SPI_PHASE_2EDGE;
-  	  	  break;
-  case 2: hspi3.Init.CLKPolarity = SPI_POLARITY_HIGH;
-  	  	  hspi3.Init.CLKPhase = SPI_PHASE_1EDGE;
-  	  	  break;
-  default:
-	  	  hspi3.Init.CLKPolarity = SPI_POLARITY_HIGH;
-  	  	  hspi3.Init.CLKPhase = SPI_PHASE_2EDGE;
-  	  	  break;
-  }
-  /* the same as QSPI */
-  ////if (CFG_SPI_GET(gCFGparams.SPI1stBit, 1) == CFG_SPI_1STBIT_LSB)
-  ////	  hspi3.Init.FirstBit = SPI_FIRSTBIT_LSB;
-  ////else
-	  hspi3.Init.FirstBit = SPI_FIRSTBIT_MSB;
-
-  hspi3.Init.NSS = SPI_NSS_SOFT;	//SPI_NSS_HARD_INPUT;
-  hspi3.Init.TIMode = SPI_TIMODE_DISABLE;
-  hspi3.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
-  hspi3.Init.CRCPolynomial = 7;
-  hspi3.Init.NSSPMode = SPI_NSS_PULSE_DISABLE;
-  hspi3.Init.NSSPolarity = SPI_NSS_POLARITY_LOW;
-  hspi3.Init.FifoThreshold = SPI_FIFO_THRESHOLD_01DATA;
-  hspi3.Init.TxCRCInitializationPattern = SPI_CRC_INITIALIZATION_ALL_ZERO_PATTERN;
-  hspi3.Init.RxCRCInitializationPattern = SPI_CRC_INITIALIZATION_ALL_ZERO_PATTERN;
-  hspi3.Init.MasterSSIdleness = SPI_MASTER_SS_IDLENESS_00CYCLE;
-  hspi3.Init.MasterInterDataIdleness = SPI_MASTER_INTERDATA_IDLENESS_00CYCLE;
-  hspi3.Init.MasterReceiverAutoSusp = SPI_MASTER_RX_AUTOSUSP_DISABLE;;
-  hspi3.Init.MasterKeepIOState = SPI_MASTER_KEEP_IO_STATE_DISABLE;
-  hspi3.Init.IOSwap = SPI_IO_SWAP_ENABLE;	//SPI_IO_SWAP_ENABLE;	//SPI_IO_SWAP_DISABLE; //!! MISO is MOSI !!
-  if (HAL_SPI_Init(&hspi3) != HAL_OK)
-  {
-    Error_Handler();
-  }
-}
-#else
 void MX_SPI3_Init(void)
 {
   SPI_AutonomousModeConfTypeDef HAL_SPI_AutonomousMode_Cfg_Struct = {0};
@@ -805,11 +810,21 @@ void MX_SPI3_Init(void)
     Error_Handler();
   }
 
-  ////__HAL_SPI_ENABLE(&hspi3);
-}
+#ifdef SPI3_DMA
+#if 0
+  MX_Queue_tx_Config();
+  HAL_DMAEx_List_LinkQ(&handle_GPDMA1_Channel7, &Queue_tx);
+  __HAL_LINKDMA(&hspi3, hdmatx, handle_GPDMA1_Channel7);
+#endif
+  MX_Queue_rx_Config();
+  HAL_DMAEx_List_LinkQ(&handle_GPDMA1_Channel6, &Queue_rx);
+  __HAL_LINKDMA(&hspi3, hdmarx, handle_GPDMA1_Channel6);
 #endif
 
-#ifndef NUYCLEO_BOARD
+  ////__HAL_SPI_ENABLE(&hspi3);
+}
+
+#ifndef NUCLEO_BOARD
 /**
   * @brief I2C3 Initialization Function
   * @param None
@@ -929,6 +944,95 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     HAL_IncTick();
   }
 }
+
+#ifdef SPI3_DMA
+void HAL_SPI_RxHalfCpltCallback(SPI_HandleTypeDef *hspi)
+{
+	(void)hspi;
+	////extern volatile int GSPI_DMA_RxComplete;
+
+	hspi->State = HAL_SPI_STATE_READY;
+	////GSPI_DMA_RxComplete = 1;
+}
+
+#if 1
+/* do now have a circular buffer - so, just HalfCplt comes! */
+void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi)
+{
+	(void)hspi;
+	////extern volatile int GSPI_DMA_RxComplete;
+
+	hspi->State = HAL_SPI_STATE_READY;
+	////GSPI_DMA_RxComplete = 1;
+}
+#endif
+
+#if 0
+void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
+{
+	(void)hspi;
+}
+#endif
+
+void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi)
+{
+	(void)hspi;
+}
+#endif
+
+#ifdef QSPI_DMA
+#if 0
+void HAL_OSPI_RxCpltCallback(OSPI_HandleTypeDef *hospi)
+{
+	(void)hospi;
+	////extern volatile int GQSPI_DMA_TxComplete;
+
+	////GQSPI_DMA_TxComplete = 1;
+}
+#endif
+
+/**
+  * @brief  Command completed callback.
+  * @param  hospi: OSPI handle
+  * @retval None
+  */
+void HAL_OSPI_CmdCpltCallback(OSPI_HandleTypeDef *hospi)
+{
+	(void)hospi;
+}
+
+/**
+  * @brief  Tx Transfer completed callbacks.
+  * @param  hospi: OSPI handle
+  * @retval None
+  */
+#if 0
+/* we do not use a double byffer */
+void HAL_OSPI_TxCpltCallback(OSPI_HandleTypeDef *hospi)
+{
+	(void)hospi;
+	////extern volatile int GQSPI_DMA_TxComplete;
+
+	////GQSPI_DMA_TxComplete = 1;
+}
+#endif
+
+void HAL_OSPI_TxHalfCpltCallback(OSPI_HandleTypeDef *hospi)
+{
+	 (void)hospi;
+	 ////extern volatile int GQSPI_DMA_TxComplete;
+
+	 ////GQSPI_DMA_TxComplete = 1;
+}
+
+void HAL_OSPI_RxHalfCpltCallback(OSPI_HandleTypeDef *hospi)
+{
+	 (void)hospi;
+	 ////extern volatile int GQSPI_DMA_TxComplete;
+
+	 ////GQSPI_DMA_TxComplete = 1;
+}
+#endif
 
 /**
   * @brief  This function is executed in case of error occurrence.

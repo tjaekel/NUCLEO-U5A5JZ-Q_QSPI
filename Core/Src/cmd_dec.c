@@ -965,6 +965,23 @@ ECMD_DEC_Status CMD_test(TCMD_DEC_Results *res, EResultOut out)
 	print_log(out, "\r\nstart: %u | end: %u | delta: %u | %u bytes\r\n", startTS, endTS, endTS - startTS, i * 64);
 #endif
 
+#if 1
+	/* test if DCache is usable */
+	unsigned long *p = (unsigned long *)0x60000000;
+	unsigned long i;
+	unsigned long val;
+	val = res->val[1];
+	for (i = 0; i < res->val[0]; i++)
+		*p++ = val++;
+	p = (unsigned long *)0x60000000;
+	for (i = 0; i< res->val[0]; i++)
+	{
+		val = *p++;
+		print_log(out, "%8lx ", val);
+	}
+	print_log(out, "\r\n");
+#endif
+
 	return CMD_DEC_OK;
 }
 
@@ -1034,6 +1051,7 @@ ECMD_DEC_Status CMD_rawspi(TCMD_DEC_Results *res, EResultOut out)
 	(void)out;
 	unsigned char *spiTx;
 	unsigned long i;
+	uint8_t err;
 
 	if (res->num < 2)
 		return CMD_DEC_INVPARAM;
@@ -1045,12 +1063,15 @@ ECMD_DEC_Status CMD_rawspi(TCMD_DEC_Results *res, EResultOut out)
 	for (i = 0; i < res->num; i++)
 		spiTx[i] = (unsigned char)res->val[i];
 
-	OSPI_SPITransaction(spiTx, res->num);
-	for (i = 0; i < res->num; i++)
+	err = OSPI_SPITransaction(spiTx, res->num);
+	if ( ! err)
 	{
-		print_log(out, "%02x ", spiTx[i]);
+		for (i = 0; i < res->num; i++)
+		{
+			print_log(out, "%02x ", spiTx[i]);
+		}
+		print_log(out, "\r\n");
 	}
-	print_log(out, "\r\n");
 
 	MEM_PoolFree(spiTx);
 	return CMD_DEC_OK;

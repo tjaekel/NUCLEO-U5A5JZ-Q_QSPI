@@ -191,6 +191,12 @@ void  USBPD_TRACE_Add(TRACE_EVENT Type, uint8_t PortNum, uint8_t Sop, uint8_t *P
 
   TRACER_EMB_SendData();
 #else
+  (void)PortNum;
+  (void)Ptr;
+  (void)Size;
+  (void)Sop;
+  (void)Type;
+
   return;
 #endif /* _TRACE */
 }

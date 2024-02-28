@@ -22,7 +22,16 @@
 #include "cmd_dec.h"
 
 extern DMA_HandleTypeDef handle_GPDMA1_Channel0;
+#if 0
+extern DMA_HandleTypeDef handle_GPDMA1_Channel7;	//SPI3 DMA Rx
+#endif
+extern DMA_HandleTypeDef handle_GPDMA1_Channel6;	//SPI3 DMA Rx
+#ifdef QSPI_DMA
+extern DMA_HandleTypeDef handle_GPDMA1_Channel12;	//QSPI DMA
+#endif
+extern OSPI_HandleTypeDef hospi1;
 extern UART_HandleTypeDef huart1;
+extern SPI_HandleTypeDef  hspi3;
 #ifndef STM32U5A5xx
 extern PCD_HandleTypeDef hpcd_USB_OTG_FS;
 #else
@@ -126,6 +135,41 @@ void GPDMA1_Channel5_IRQHandler(void)
 }
 #endif
 
+#ifdef SPI3_DMA
+void GPDMA1_Channel6_IRQHandler(void)
+{
+  HAL_DMA_IRQHandler(&handle_GPDMA1_Channel6);
+}
+
+#if 0
+/**
+  * @brief This function handles GPDMA1 Channel 7 global interrupt - SPI3 DMA Tx
+  */
+void GPDMA1_Channel7_IRQHandler(void)
+{
+  HAL_DMA_IRQHandler(&handle_GPDMA1_Channel7);
+}
+#endif
+
+/**
+  * @brief This function handles SPI1 global interrupt - SPI3 DMA Rx
+  */
+void SPI3_IRQHandler(void)
+{
+  HAL_SPI_IRQHandler(&hspi3);
+}
+#endif
+
+#ifdef QSPI_DMA
+/**
+  * @brief This function handles GPDMA1 Channel 12 global interrupt - QSPI1 DMA
+  */
+void GPDMA1_Channel12_IRQHandler(void)
+{
+  HAL_DMA_IRQHandler(&handle_GPDMA1_Channel12);
+}
+#endif
+
 /**
   * @brief This function handles TIM6 global interrupt.
   */
@@ -161,6 +205,7 @@ void OTG_HS_IRQHandler(void)
 }
 #endif
 
+/* it is enabled and needed by the USB stack! */
 /**
   * @brief This function handles UCPD1 global interrupt.
   */
@@ -168,3 +213,10 @@ void UCPD1_IRQHandler(void)
 {
   USBPD_PORT0_IRQHandler();
 }
+
+#ifdef QSPI_DMA
+void OCTOSPI1_IRQHandler(void)
+{
+  HAL_OSPI_IRQHandler(&hospi1);
+}
+#endif

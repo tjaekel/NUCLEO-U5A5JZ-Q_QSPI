@@ -108,7 +108,7 @@ typedef struct
   uint8_t                    *pBuffPtr;     /*!< Address of the OSPI buffer for transfer          */
   __IO uint32_t              XferSize;      /*!< Number of data to transfer                       */
   __IO uint32_t              XferCount;     /*!< Counter of data transferred                      */
-  DMA_HandleTypeDef     *hdma;    /*!< Handle of the DMA channel used for the transfer  */
+  DMA_HandleTypeDef     	 *hdma;    		/*!< Handle of the DMA channel used for the transfer  */
   __IO uint32_t              State;         /*!< Internal state of the OSPI HAL driver            */
   __IO uint32_t              ErrorCode;     /*!< Error code in case of HAL driver internal error  */
   uint32_t                   Timeout;       /*!< Timeout used for the OSPI external device access */

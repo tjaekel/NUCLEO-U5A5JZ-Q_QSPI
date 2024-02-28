@@ -10,9 +10,17 @@
 #include "MEM_Pool.h"
 #include "SYS_config.h"
 
+#include "tx_api.h"			//for tx_thread_sleep()
+
 extern SPI_HandleTypeDef  hspi3;
 
 static unsigned long selQSPI = 1;
+#ifdef QSPI_DMA
+////volatile int GQSPI_DMA_TxComplete = 0;
+#endif
+#ifdef SPI3_DMA
+////volatile int GSPI_DMA_RxComplete = 0;
+#endif
 
 void QSPI_SetQSPI(unsigned long x)
 {
@@ -107,6 +115,10 @@ uint8_t OSPI_WriteReadTransaction(int device, OSPI_HandleTypeDef *hospi, unsigne
     return -1;
   }
 
+#ifdef QSPI_DMA
+  ////GQSPI_DMA_TxComplete = 0;
+#endif
+
   if (numRead)
   {
 #if 1
@@ -119,16 +131,12 @@ uint8_t OSPI_WriteReadTransaction(int device, OSPI_HandleTypeDef *hospi, unsigne
 	  if (device == 0x2)
 		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_RESET);
 #endif
-	  if (HAL_OSPI_Receive(hospi, (uint8_t *)params, HAL_OSPI_TIMEOUT_DEFAULT_VALUE) != HAL_OK)
-	  {
-#if 1
-#ifdef NUCLEO_BOARD
-		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_2, GPIO_PIN_SET);
+#ifdef QSPI_DMA
+	  if (HAL_OSPI_Receive_DMA(hospi, (uint8_t *)params) != HAL_OK)
 #else
-		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_2, GPIO_PIN_SET);
+	  if (HAL_OSPI_Receive(hospi, (uint8_t *)params, HAL_OSPI_TIMEOUT_DEFAULT_VALUE) != HAL_OK)
 #endif
-		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_SET);
-#endif
+	  {
 	    return -1;
 	  }
   }
@@ -146,29 +154,29 @@ uint8_t OSPI_WriteReadTransaction(int device, OSPI_HandleTypeDef *hospi, unsigne
 		  if ((device & 0x2) == 0x2)
 			  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_RESET);
 #endif
-		  if (HAL_OSPI_Transmit(hospi, (uint8_t *)&params[i], HAL_OSPI_TIMEOUT_DEFAULT_VALUE) != HAL_OK)
-		  {
-#if 1
-#ifdef NUCLEO_BOARD
-			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_2, GPIO_PIN_SET);
+#ifdef QSPI_DMA
+		  if (HAL_OSPI_Transmit_DMA(hospi, (uint8_t *)&params[i]) != HAL_OK)
 #else
-			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
+		  if (HAL_OSPI_Transmit(hospi, (uint8_t *)&params[i], HAL_OSPI_TIMEOUT_DEFAULT_VALUE) != HAL_OK)
 #endif
-			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_SET);
-#endif
+		  {
 		 	return -1;
 		  }
 	  }
   }
 
-#if 1
+#ifdef QSPI_DMA
+  /* this is too early! DMA has finished but OSPI shifts still out! */
+  ////while ( ! GQSPI_DMA_TxComplete ) {;}
+  while ( hospi->State != HAL_OSPI_STATE_READY) { /*tx_thread_sleep(1)*/; }
+  /* with sleep it is too long */
+#endif
 #ifdef NUCLEO_BOARD
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_2, GPIO_PIN_SET);
 #else
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
 #endif
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_SET);
-#endif
 
   return 1;
 }
@@ -354,6 +362,9 @@ extern HAL_StatusTypeDef HAL_OSPI_SPITransaction(OSPI_HandleTypeDef *hospi, uint
 uint8_t OSPI_SPITransaction(unsigned char *bytes, unsigned long numParams)
 {
   unsigned long device = QSPI_GetQSPI();
+#ifdef SPI3_DMA
+  unsigned char *xBytes = bytes;
+#endif
 
   OSPI_RegularCmdTypeDef sCommand = {0};
 
@@ -362,15 +373,16 @@ uint8_t OSPI_SPITransaction(unsigned char *bytes, unsigned long numParams)
 
   sCommand.Instruction        = (uint32_t)*bytes++;
 
-  sCommand.InstructionMode    = HAL_OSPI_INSTRUCTION_1_LINE;	//HAL_OSPI_INSTRUCTION_NONE;	//HAL_OSPI_INSTRUCTION_1_LINE;
-  sCommand.InstructionSize    = HAL_OSPI_INSTRUCTION_8_BITS;
+  sCommand.InstructionMode    = HAL_OSPI_INSTRUCTION_1_LINE;	//HAL_OSPI_INSTRUCTION_NONE; not possible w/o CMD, if no ADDR and no ALT
+  sCommand.InstructionSize    = HAL_OSPI_INSTRUCTION_8_BITS;	//we could send 4 bytes, actually
   sCommand.InstructionDtrMode = HAL_OSPI_INSTRUCTION_DTR_DISABLE;
 
-  sCommand.Address			  = 0x66778899;
+  sCommand.Address			  = 0x66778899;						//not used
   sCommand.AddressMode		  = HAL_OSPI_ADDRESS_NONE;
   sCommand.AddressSize 		  = HAL_OSPI_ADDRESS_8_BITS;
-
   sCommand.AddressDtrMode     = HAL_OSPI_ADDRESS_DTR_DISABLE;
+
+  sCommand.AlternateBytes	  = 0xAABBCCDD;						//not used
   sCommand.AlternateBytesMode = HAL_OSPI_ALTERNATE_BYTES_NONE;
   sCommand.AlternateBytesSize = HAL_OSPI_ALTERNATE_BYTES_8_BITS;
 
@@ -383,6 +395,13 @@ uint8_t OSPI_SPITransaction(unsigned char *bytes, unsigned long numParams)
 
   sCommand.DQSMode            = HAL_OSPI_DQS_DISABLE;
   sCommand.SIOOMode           = HAL_OSPI_SIOO_INST_EVERY_CMD;
+
+#ifdef SPI3_DMA
+  ////GSPI_DMA_RxComplete = 0;
+#endif
+#ifdef QSPI_DMA
+  ////GQSPI_DMA_TxComplete  = 0;
+#endif
 
   /**
    * Remark: HAL_QSPI_Command sets all the parameter needed for entire transaction
@@ -400,6 +419,15 @@ uint8_t OSPI_SPITransaction(unsigned char *bytes, unsigned long numParams)
   __HAL_SPI_ENABLE(&hspi3);
   SET_BIT(((SPI_HandleTypeDef *)&hspi3)->Instance->CR1, SPI_CR1_SSI);
 
+#ifdef SPI3_DMA
+  /* start SPI3 Slave Rx in DMA mode */
+  if (HAL_SPI_Receive_DMA(&hspi3, (uint8_t *)xBytes, numParams) != HAL_OK)
+  {
+	/* Transfer error in transmission process */
+	return -1;
+  }
+#endif
+
 #if 1
 	  if (device == 0x1)
 #ifdef NUCLEO_BOARD
@@ -412,23 +440,31 @@ uint8_t OSPI_SPITransaction(unsigned char *bytes, unsigned long numParams)
 #endif
   ////SET_BIT(((SPI_HandleTypeDef *)&hspi3)->Instance->CR1, SPI_CR1_CSTART);
 
+#ifdef QSPI_DMA
+  if (HAL_OSPI_Transmit_DMA(&hospi1, bytes) != HAL_OK)
+  {
+	  return -1;
+  }
+
+  while ( hospi1.State != HAL_OSPI_STATE_READY) { /*tx_thread_sleep(1)*/; }
+  /* with sleep it is too long */
+#else
   if (HAL_OSPI_SPITransaction(&hospi1, bytes, HAL_OSPI_TIMEOUT_DEFAULT_VALUE) != HAL_OK)
   {
 	return -1;
   }
+#endif
 
-#if 1
 #ifdef NUCLEO_BOARD
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_2, GPIO_PIN_SET);
 #else
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
 #endif
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_SET);
-#endif
 
   /* disable SPI3 */
   CLEAR_BIT(((SPI_HandleTypeDef *)&hspi3)->Instance->CR1, SPI_CR1_SSI);
   __HAL_SPI_DISABLE(&hspi3);
 
-  return 1;
+  return 0;
 }

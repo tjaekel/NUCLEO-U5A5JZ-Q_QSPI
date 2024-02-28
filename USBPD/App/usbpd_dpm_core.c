@@ -176,6 +176,8 @@ static void USBPD_DPM_CADTaskWakeUp(void)
   */
 DEF_TASK_FUNCTION(USBPD_CAD_Task)
 {
+  (void)argument;
+
   uint32_t _timing;
 #ifdef _LOW_POWER
   UTIL_LPM_SetOffMode(LPM_CAD, UTIL_LPM_DISABLE);
@@ -196,6 +198,7 @@ DEF_TASK_FUNCTION(USBPD_CAD_Task)
   */
 void USBPD_DPM_CADCallback(uint8_t PortNum, USBPD_CAD_EVENT State, CCxPin_TypeDef Cc)
 {
+  (void) Cc;
 #ifdef _TRACE
   USBPD_TRACE_Add(USBPD_TRACE_CADEVENT, PortNum, (uint8_t)State, NULL, 0);
 #endif /* _TRACE */

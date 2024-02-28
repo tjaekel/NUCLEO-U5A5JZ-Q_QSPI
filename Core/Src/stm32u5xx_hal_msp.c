@@ -20,6 +20,7 @@
 #include "SYS_config.h"
 
 extern DMA_HandleTypeDef handle_GPDMA1_Channel0;
+extern DMA_HandleTypeDef handle_GPDMA1_Channel12;		//QSPI DMA
 
 /**
   * Initializes the Global MSP.
@@ -262,6 +263,39 @@ void HAL_OSPI_MspInit(OSPI_HandleTypeDef* hospi)
     GPIO_InitStruct.Alternate = GPIO_AF10_OCTOSPI1;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 #endif
+
+#ifdef QSPI_DMA
+    /* QSPI DMA */
+    handle_GPDMA1_Channel12.Instance = GPDMA1_Channel12;
+    handle_GPDMA1_Channel12.Init.Request = GPDMA1_REQUEST_OCTOSPI1;
+    handle_GPDMA1_Channel12.Init.BlkHWRequest = DMA_BREQ_SINGLE_BURST;
+    handle_GPDMA1_Channel12.Init.Direction = DMA_MEMORY_TO_PERIPH;			//DMA_PERIPH_TO_MEMORY;
+    handle_GPDMA1_Channel12.Init.SrcInc = DMA_DINC_INCREMENTED;				//DMA_SINC_FIXED;
+    handle_GPDMA1_Channel12.Init.DestInc = DMA_SINC_FIXED;					//DMA_DINC_INCREMENTED;
+    handle_GPDMA1_Channel12.Init.SrcDataWidth = DMA_SRC_DATAWIDTH_BYTE;		//DMA_SRC_DATAWIDTH_WORD;
+    handle_GPDMA1_Channel12.Init.DestDataWidth = DMA_SRC_DATAWIDTH_BYTE;	//DMA_DEST_DATAWIDTH_WORD;
+    handle_GPDMA1_Channel12.Init.Priority = DMA_HIGH_PRIORITY;
+    handle_GPDMA1_Channel12.Init.SrcBurstLength = 4;
+    handle_GPDMA1_Channel12.Init.DestBurstLength = 4;
+    handle_GPDMA1_Channel12.Init.TransferAllocatedPort = DMA_SRC_ALLOCATED_PORT0|DMA_DEST_ALLOCATED_PORT1;
+    handle_GPDMA1_Channel12.Init.TransferEventMode = DMA_TCEM_BLOCK_TRANSFER;
+    handle_GPDMA1_Channel12.Init.Mode = DMA_NORMAL;
+    if (HAL_DMA_Init(&handle_GPDMA1_Channel12) != HAL_OK)
+    {
+      Error_Handler();
+    }
+
+    __HAL_LINKDMA(hospi, hdma, handle_GPDMA1_Channel12);
+
+    if (HAL_DMA_ConfigChannelAttributes(&handle_GPDMA1_Channel12, DMA_CHANNEL_NPRIV) != HAL_OK)
+    {
+      Error_Handler();
+    }
+
+    /* OCTOSPI2 interrupt Init */
+    HAL_NVIC_SetPriority(OCTOSPI1_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(OCTOSPI1_IRQn);
+#endif
   }
 }
 
@@ -288,12 +322,12 @@ void HAL_OSPI_MspDeInit(OSPI_HandleTypeDef* hospi)
     PB10     ------> OCTOSPIM_P1_CLK
     */
     HAL_GPIO_DeInit(GPIOA, GPIO_PIN_2);
-
     HAL_GPIO_DeInit(GPIOB, GPIO_PIN_0|GPIO_PIN_10);
-
     HAL_GPIO_DeInit(GPIOE, GPIO_PIN_12|GPIO_PIN_14|GPIO_PIN_15);
-  }
 
+    HAL_DMA_DeInit(hospi->hdma);
+    HAL_NVIC_DisableIRQ(OCTOSPI1_IRQn);
+  }
 }
 
 /**
@@ -401,7 +435,6 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* huart)
 
     HAL_NVIC_DisableIRQ(USART1_IRQn);
   }
-
 }
 
 void HAL_SPI_MspInit(SPI_HandleTypeDef* hspi)
@@ -434,7 +467,11 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef* hspi)
 	    GPIO_InitStruct.Alternate = GPIO_AF6_SPI3;
 	    HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-	    /* initialize DMA : use DMA in parallel with QSPI transmit */
+#if 0
+	    //is this needed if we run SPI3 in DMA Rx mode?
+	    HAL_NVIC_SetPriority(SPI3_IRQn, 0, 0);
+	    HAL_NVIC_EnableIRQ(SPI3_IRQn);
+#endif
 	}
 }
 
@@ -452,6 +489,8 @@ void HAL_SPI_MspDeInit(SPI_HandleTypeDef* hspi)
 	    PC12    ------> SPI3_MOSI - not used)
 	    */
 	    HAL_GPIO_DeInit(GPIOC, GPIO_PIN_10|GPIO_PIN_11);
+
+	    HAL_NVIC_DisableIRQ(SPI3_IRQn);
 	}
 }
 

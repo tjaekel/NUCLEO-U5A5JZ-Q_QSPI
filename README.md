@@ -46,4 +46,16 @@ It uses the (new) AZURE RTOS (not the old STM Middleware), the USBX stack, threa
 
 ## Four states on LEDs with one single GPIO pin
 This project demonstrates also how to use 2 LEDs on a single GPIO pin and to have FOUR states to display.
+Both LEDs On is done via toggling both LEDs with RTOS SysTick (changed to 1 ms period).
+
+## QSPI and SPI3 as Rx in DMA mode
+The project uses now DMA for OCTOSPI (running as QSPI) and DMA for SPI3 as Slave Rx:
+The QSPI transaction for Read and Write in "indirect mode" uses DMA: way faster and a nice waveform (no byte or word bursts anymore).
+
+The project has also support for a regular bi-directional (full-duplex) SPI where the OCTOSPI is used in dual-lane mode as SPI Tx.
+But OCTOSPI cannot transmit and receive at the same time (it is NOT a full-duplex SPI!)
+
+Therefore, I use SPI3 as Slave Rx (in DMA mode): it needs wire connections for SPI3 SCLK with OCTOSPI1 SCLK and SPI3 MOSI is connected to OCTOSPI1 DIO1. Now QSPI sends (on DIO0 = MOSI) and SPI3 Slave receives (on DIO1 = MISO). It works!
+
+See the marocs SPI3_DMA and QSPI_DMA defined in project properties: it illustrates what to do in order to use DMA for QSPI (Tx and Rx) as well as SPI3 Rx.
 

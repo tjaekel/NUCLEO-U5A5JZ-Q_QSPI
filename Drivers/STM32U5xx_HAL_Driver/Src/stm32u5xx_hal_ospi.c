@@ -280,7 +280,7 @@ static void              OSPI_DMACplt(DMA_HandleTypeDef *hdma);
 static void              OSPI_DMAHalfCplt(DMA_HandleTypeDef *hdma);
 static void              OSPI_DMAError(DMA_HandleTypeDef *hdma);
 static void              OSPI_DMAAbortCplt(DMA_HandleTypeDef *hdma);
-static HAL_StatusTypeDef OSPI_WaitFlagStateUntilTimeout(OSPI_HandleTypeDef *hospi, uint32_t Flag, FlagStatus State,
+/*static*/ HAL_StatusTypeDef OSPI_WaitFlagStateUntilTimeout(OSPI_HandleTypeDef *hospi, uint32_t Flag, FlagStatus State,
                                                         uint32_t Tickstart, uint32_t Timeout);
 static HAL_StatusTypeDef OSPI_ConfigCmd(OSPI_HandleTypeDef *hospi, OSPI_RegularCmdTypeDef *cmd);
 #if     defined (OCTOSPIM)
@@ -1178,14 +1178,15 @@ HAL_StatusTypeDef HAL_OSPI_Transmit(OSPI_HandleTypeDef *hospi, uint8_t *pData, u
 
 HAL_StatusTypeDef HAL_OSPI_SPITransaction(OSPI_HandleTypeDef *hospi, uint8_t *pData, uint32_t Timeout)
 {
-	extern SPI_HandleTypeDef hspi3;
-
 	  HAL_StatusTypeDef status;
 	  uint32_t tickstart = HAL_GetTick();
 	  __IO uint32_t *data_reg = &hospi->Instance->DR;
 	  uint32_t addr_reg = hospi->Instance->AR;
 	  uint32_t ir_reg = hospi->Instance->IR;
+#ifndef SPI3_DMA
+	  extern SPI_HandleTypeDef hspi3;
 	  int i;
+#endif
 
 	  /* Check the data pointer allocation */
 	  if (pData == NULL)
@@ -1195,8 +1196,7 @@ HAL_StatusTypeDef HAL_OSPI_SPITransaction(OSPI_HandleTypeDef *hospi, uint8_t *pD
 	  }
 	  else
 	  {
-	    /* Check the state */
-	    if (hospi->State == HAL_OSPI_STATE_CMD_CFG)
+	    /* Check the state */	    if (hospi->State == HAL_OSPI_STATE_CMD_CFG)
 	    {
 	      /* Configure counters and size */
 	      hospi->XferCount = READ_REG(hospi->Instance->DLR) + 1U;
@@ -1224,7 +1224,9 @@ HAL_StatusTypeDef HAL_OSPI_SPITransaction(OSPI_HandleTypeDef *hospi, uint8_t *pD
 	        }
 	      }
 
+#ifndef SPI3_DMA
 	      i = 0;
+#endif
 	      do
 	      {
 	    	*((__IO uint8_t *)data_reg) = *hospi->pBuffPtr;
@@ -1237,6 +1239,7 @@ HAL_StatusTypeDef HAL_OSPI_SPITransaction(OSPI_HandleTypeDef *hospi, uint8_t *pD
 	          break;
 	        }
 
+#ifndef SPI3_DMA
 	        if (i == 0)
 	        {
 	        	/* on first iteration we get CMD and one byte! */
@@ -1251,6 +1254,7 @@ HAL_StatusTypeDef HAL_OSPI_SPITransaction(OSPI_HandleTypeDef *hospi, uint8_t *pD
 	        	while ( ! __HAL_SPI_GET_FLAG(&hspi3, SPI_FLAG_RXP)) {;}
 	        	*hospi->pBuffPtr = SPI3->RXDR;			//XXXX
 	        }
+#endif
 
 	        hospi->pBuffPtr++;
 	        hospi->XferCount--;
@@ -3111,7 +3115,7 @@ static void OSPI_DMAAbortCplt(DMA_HandleTypeDef *hdma)
   * @param  Tickstart : Tick start value
   * @retval HAL status
   */
-static HAL_StatusTypeDef OSPI_WaitFlagStateUntilTimeout(OSPI_HandleTypeDef *hospi, uint32_t Flag,
+/*static*/ HAL_StatusTypeDef OSPI_WaitFlagStateUntilTimeout(OSPI_HandleTypeDef *hospi, uint32_t Flag,
                                                         FlagStatus State, uint32_t Tickstart, uint32_t Timeout)
 {
   /* Wait until flag is in expected state */
