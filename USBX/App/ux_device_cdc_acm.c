@@ -243,7 +243,7 @@ VOID USBD_CDC_ACM_Activate(VOID *cdc_acm_instance)
 
   /* ATT: regular UART works only if USB-C UART is connected! */
 
-#if 0
+#if 1
   /* Configure the UART peripheral */
   USBX_APP_UART_Init(&uart_handler);
 #endif
@@ -299,9 +299,6 @@ VOID USBD_CDC_ACM_Activate(VOID *cdc_acm_instance)
     Error_Handler();
   }
 #endif
-
-  /* USER CODE END USBD_CDC_ACM_Activate */
-
   return;
 }
 
@@ -354,12 +351,14 @@ VOID USBD_CDC_ACM_ParameterChange(VOID *cdc_acm_instance)
   {
     case UX_SLAVE_CLASS_CDC_ACM_SET_LINE_CODING :
 
+#ifndef CODEC_SAI
       /* Get the Line Coding parameters */
       if (ux_device_class_cdc_acm_ioctl(cdc_acm, UX_SLAVE_CLASS_CDC_ACM_IOCTL_GET_LINE_CODING,
                                         &CDC_VCP_LineCoding) != UX_SUCCESS)
       {
         Error_Handler();
       }
+#endif
 
       /* Check if baudrate < 9600) then set it to 9600 */
       if (CDC_VCP_LineCoding.ux_slave_class_cdc_acm_parameter_baudrate < MIN_BAUDRATE)

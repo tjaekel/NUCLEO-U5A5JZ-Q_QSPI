@@ -16,9 +16,13 @@
 #include "temp_sensor.h"
 #ifndef NUCLEO_BOARD
 #include "i2c3_flash.h"
+#include "i2c1_IMU.h"
 #endif
+#include "SPI1_CODEC.h"
 
 #include "app_azure_rtos.h"		/* for delay */
+
+#include "math.h"
 
 volatile int rxFlag[2] = {0,0};
 
@@ -109,9 +113,15 @@ ECMD_DEC_Status CMD_debug(TCMD_DEC_Results *res, EResultOut out);
 ECMD_DEC_Status CMD_delay(TCMD_DEC_Results *res, EResultOut out);
 ECMD_DEC_Status CMD_usr(TCMD_DEC_Results *res, EResultOut out);
 ECMD_DEC_Status CMD_led(TCMD_DEC_Results *res, EResultOut out);
+ECMD_DEC_Status CMD_dumpm(TCMD_DEC_Results *res, EResultOut out);
+ECMD_DEC_Status CMD_memw(TCMD_DEC_Results *res, EResultOut out);
+ECMD_DEC_Status CMD_memt(TCMD_DEC_Results *res, EResultOut out);
+ECMD_DEC_Status CMD_fwreset(TCMD_DEC_Results *res, EResultOut out);
 #ifndef NUCLEO_BOARD
 ECMD_DEC_Status CMD_flashr(TCMD_DEC_Results *res, EResultOut out);
 ECMD_DEC_Status CMD_flashw(TCMD_DEC_Results *res, EResultOut out);
+ECMD_DEC_Status CMD_imur(TCMD_DEC_Results *res, EResultOut out);
+ECMD_DEC_Status CMD_imuw(TCMD_DEC_Results *res, EResultOut out);
 #endif
 
 ECMD_DEC_Status CMD_qspi(TCMD_DEC_Results *res, EResultOut out);
@@ -120,6 +130,10 @@ ECMD_DEC_Status CMD_sqspi(TCMD_DEC_Results *res, EResultOut out);
 ECMD_DEC_Status CMD_qspideinit(TCMD_DEC_Results *res, EResultOut out);
 ECMD_DEC_Status CMD_qspiclk(TCMD_DEC_Results *res, EResultOut out);
 ECMD_DEC_Status CMD_cid(TCMD_DEC_Results *res, EResultOut out);
+
+ECMD_DEC_Status CMD_codece(TCMD_DEC_Results *res, EResultOut out);
+ECMD_DEC_Status CMD_codecr(TCMD_DEC_Results *res, EResultOut out);
+ECMD_DEC_Status CMD_codecw(TCMD_DEC_Results *res, EResultOut out);
 
 ECMD_DEC_Status CMD_test(TCMD_DEC_Results *res, EResultOut out);
 
@@ -174,6 +188,26 @@ const TCMD_DEC_Command Commands[] = {
 				.help = (const char *)"led off, on1, on2 [0..3]",
 				.func = CMD_led
 		},
+		{
+				.cmd = (const char *)"dumpm",
+				.help = (const char *)"MCU dump memory <addr> <bytes> [mode]",
+				.func = CMD_dumpm
+		},
+		{
+				.cmd = (const char *)"memw",
+				.help = (const char *)"MCU memory write <addr> [val]",
+				.func = CMD_memw
+		},
+		{
+				.cmd = (const char *)"memt",
+				.help = (const char *)"MCU memory test <addr> <words>",
+				.func = CMD_memt
+		},
+		{
+				.cmd = (const char *)"fwreset",
+				.help = (const char *)"reset MCU",
+				.func = CMD_fwreset
+		},
 #ifndef NUCLEO_BOARD
 		{
 				.cmd = (const char *)"flashr",
@@ -185,7 +219,32 @@ const TCMD_DEC_Command Commands[] = {
 				.help = (const char *)"write flash <addr> <byte> ...",
 				.func = CMD_flashw
 		},
+		{
+				.cmd = (const char *)"imur",
+				.help = (const char *)"read IMU <addr> <numbytes>",
+				.func = CMD_imur
+		},
+		{
+				.cmd = (const char *)"imuw",
+				.help = (const char *)"write IMU <addr> <byte> ...",
+				.func = CMD_imuw
+		},
 #endif
+		{
+				.cmd = (const char *)"codece",
+				.help = (const char *)"enable SPI and CODEC",
+				.func = CMD_codece
+		},
+		{
+				.cmd = (const char *)"codecr",
+				.help = (const char *)"read CODEC registers <addr> <num>",
+				.func = CMD_codecr
+		},
+		{
+				.cmd = (const char *)"codecw",
+				.help = (const char *)"write CODEC registers <addr> <byte> ...",
+				.func = CMD_codecw
+		},
 
 		/* chip specific */
 		{
@@ -965,7 +1024,7 @@ ECMD_DEC_Status CMD_test(TCMD_DEC_Results *res, EResultOut out)
 	print_log(out, "\r\nstart: %u | end: %u | delta: %u | %u bytes\r\n", startTS, endTS, endTS - startTS, i * 64);
 #endif
 
-#if 1
+#if 0
 	/* test if DCache is usable */
 	unsigned long *p = (unsigned long *)0x60000000;
 	unsigned long i;
@@ -982,6 +1041,29 @@ ECMD_DEC_Status CMD_test(TCMD_DEC_Results *res, EResultOut out)
 	print_log(out, "\r\n");
 #endif
 
+#if 0
+	/* test PB5 - it works (toggles) */
+	if (res->val[0] == 0)
+		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, GPIO_PIN_RESET);
+	else
+		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, GPIO_PIN_SET);
+#endif
+
+#if 0
+	/* test PB15 - release with high CODEC SHDNZ */
+	if (res->val[0] == 0)
+		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_15, GPIO_PIN_RESET);
+	else
+		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_15, GPIO_PIN_SET);
+#endif
+
+#if 0
+	extern void MX_SAI1_Init(void);
+	extern SAI_HandleTypeDef hsai_BlockA1;
+	MX_SAI1_Init();
+
+	HAL_SAI_Receive_DMA(&hsai_BlockA1, SAIRxBuf, 192 * 16);
+#endif
 	return CMD_DEC_OK;
 }
 
@@ -1043,6 +1125,57 @@ ECMD_DEC_Status CMD_flashw(TCMD_DEC_Results *res, EResultOut out)
 	MEM_PoolFree(b);
 	return CMD_DEC_OK;
 }
+
+ECMD_DEC_Status CMD_imur(TCMD_DEC_Results *res, EResultOut out)
+{
+	unsigned char *b;
+
+	if (res->val[1] == 0)
+		return CMD_DEC_INVPARAM;
+
+	b = (unsigned char *)MEM_PoolAlloc(MEM_POOL_SEG_SIZE);
+	if ( !b )
+		return CMD_DEC_OOMEM;
+
+	if (res->val[1] == 0)
+		res->val[1] = 1;
+	if (IMU_Read(res->val[0], b, res->val[1]) == 0)
+	{
+		hex_dump(b, res->val[1], 1, out);
+	}
+
+	MEM_PoolFree(b);
+	return CMD_DEC_OK;
+}
+
+ECMD_DEC_Status CMD_imuw(TCMD_DEC_Results *res, EResultOut out)
+{
+	(void) out;
+	unsigned char *b;
+
+	unsigned long i;
+
+	if (res->num < 2)
+		return CMD_DEC_INVPARAM;
+
+	b = (unsigned char *)MEM_PoolAlloc(MEM_POOL_SEG_SIZE);
+	if ( !b )
+		return CMD_DEC_OOMEM;
+
+	for (i = 0; i < res->num - 1; i++)
+	{
+		b[i] = (unsigned char)res->val[1 + i];
+	}
+
+	if (IMU_Write(res->val[0], b, res->num - 1) != 0)
+	{
+		MEM_PoolFree(b);
+		return CMD_DEC_ERROR;
+	}
+
+	MEM_PoolFree(b);
+	return CMD_DEC_OK;
+}
 #endif
 
 ECMD_DEC_Status CMD_rawspi(TCMD_DEC_Results *res, EResultOut out)
@@ -1076,3 +1209,234 @@ ECMD_DEC_Status CMD_rawspi(TCMD_DEC_Results *res, EResultOut out)
 	MEM_PoolFree(spiTx);
 	return CMD_DEC_OK;
 }
+
+ECMD_DEC_Status CMD_dumpm(TCMD_DEC_Results *res, EResultOut out)
+{
+	hex_dump((uint8_t *)res->val[0], (uint16_t)res->val[1], res->val[2], out);
+
+	return CMD_DEC_OK;
+}
+
+ECMD_DEC_Status CMD_memw(TCMD_DEC_Results *res, EResultOut out)
+{
+	(void)out;
+	unsigned long i;
+	unsigned long *p = (unsigned long *)res->val[0];	//address
+
+	for (i = 1; i < res->num; i++)
+		*p++ = res->val[i];
+
+	return CMD_DEC_OK;
+}
+
+ECMD_DEC_Status CMD_fwreset(TCMD_DEC_Results *res, EResultOut out)
+{
+	(void)res;
+	(void)out;
+
+	NVIC_SystemReset();
+
+	return CMD_DEC_OK;
+}
+
+ECMD_DEC_Status CMD_memt(TCMD_DEC_Results *res, EResultOut out)
+{
+	unsigned long *p;
+	unsigned long i;
+	unsigned long tick1, tick2;
+
+	if ( !res->val[1] )
+		return CMD_DEC_OK;
+
+	//write memory:
+	p = (unsigned long *)res->val[0];
+	tick1 = HAL_GetTick();
+	for (i = 0; i < res->val[1]; i++)
+	{
+		*p = (unsigned long)p;
+		p++;
+	}
+	tick1 = HAL_GetTick() - tick1;
+	//check memory:
+	tick2 = HAL_GetTick();
+	p = (unsigned long *)res->val[0];
+	for (i = 0; i < res->val[1]; i++)
+	{
+		if (*p != (unsigned long)p)
+		{
+			hex_dump((uint8_t *)p, 16, 4, out);
+			break;
+		}
+		p++;
+	}
+	tick2 = HAL_GetTick() - tick2;
+
+	print_log(out, "WR: %d [ms] | RD: %d [ms]\r\n", (int)tick1, (int)tick2);
+
+	return CMD_DEC_OK;
+}
+
+#ifndef SPDIF_TEST
+#define SAI_CHANNELS			2		/* stereo, two MIC channels */
+#define SAI_BYTES_PER_SAMPLE	4		/* 24bit, for SPDIF - used as 32bit - buffer as int32_t! */
+#define SAI_AUDIO_FREQ			48		/* 48 KHz */
+#define SAI_BUFFER_SIZE			10		/* as N times 1ms samples - 1 second */
+#define SAI_DOUBLE_BUFFER		2		/* 2 for double buffering! */
+int32_t SAIRxBuf[(SAI_CHANNELS * SAI_AUDIO_FREQ) * SAI_BUFFER_SIZE * SAI_DOUBLE_BUFFER] __aligned(4);
+#endif
+
+#ifdef SPDIF_TEST
+#define SPDIF_FRAMES	192
+#define SPDIF_WORDS		4				/* 24bit values, but 32bit word */
+#define SPDIF_CHANNELS	2
+#define	SPDIF_AUDIOFREQ	48
+#define SPDIF_DOUBLEBUF	2
+#define SPDIF_CS_WORD	0x02010204;		/* 48KHz, no copy..., but w/o channel */
+
+int32_t SPDIF_out_test[SPDIF_CHANNELS * SPDIF_FRAMES] __aligned(4);
+void GenerateSPDIFOut(void)
+{
+	int i;
+	int32_t val = 0;
+	double d;
+	unsigned long CSword = SPDIF_CS_WORD;
+
+	for (i = 0; i < SPDIF_FRAMES; i++)
+	{
+		d  = sin(((2 * M_PI) * i) / SPDIF_AUDIOFREQ);
+		d *= (double)0x00700000;		//volume scaling
+		val = (int32_t)d;
+		val &= 0x00FFFFFF;
+		if (i < 32)
+		{
+			val |= (CSword & 0x1) << 26;
+			CSword >>= 1;
+		}
+
+		if (i == 20)
+		{
+			SPDIF_out_test[SPDIF_CHANNELS * i + 0] = val | (1 << 26);	/* channel A */
+			SPDIF_out_test[SPDIF_CHANNELS * i + 1] = val;
+		}
+		else if (i == 21)
+		{
+			SPDIF_out_test[SPDIF_CHANNELS * i + 0] = val;
+			SPDIF_out_test[SPDIF_CHANNELS * i + 1] = val | (1 << 26);	/* channel B */
+		}
+		else
+		{
+			SPDIF_out_test[SPDIF_CHANNELS * i + 0] = val;
+			SPDIF_out_test[SPDIF_CHANNELS * i + 1] = val;
+		}
+	}
+}
+#endif
+
+ECMD_DEC_Status CMD_codece(TCMD_DEC_Results *res, EResultOut out)
+{
+	(void)res;
+	(void)out;
+	extern void MX_SAI_Init(void);
+
+	extern SAI_HandleTypeDef hsai_BlockA1;
+	extern SAI_HandleTypeDef hsai_BlockB1;
+
+	extern void MX_SPI1_Init(void);
+#ifndef SPDIF_TEST_A
+	MX_SPI1_Init();
+#endif
+#ifdef SPDIF_TEST
+	GenerateSPDIFOut();
+	MX_SAI_Init();
+	HAL_SAI_Transmit_DMA(&hsai_BlockB1, (uint8_t *)SPDIF_out_test, (uint16_t)(sizeof(SPDIF_out_test) / sizeof(uint32_t)));
+#else
+#if 1
+	/* release CODEC from standby */
+	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_15, GPIO_PIN_SET);
+#endif
+	{
+		size_t i;
+		for (i = 0; i < (sizeof(SAIRxBuf) / sizeof(uint32_t)); i++)
+			SAIRxBuf[i] = 0x12345678;
+	}
+	MX_SAI_Init();
+#if 1
+	HAL_SAI_Receive_DMA(&hsai_BlockA1, (uint8_t *)SAIRxBuf, (uint16_t)sizeof(SAIRxBuf) / sizeof(uint32_t));
+
+	/* wait at least 2ms for CODEC out of standby */
+	tx_thread_sleep(SAI_BUFFER_SIZE/2);
+#endif
+	HAL_SAI_Transmit_DMA(&hsai_BlockB1, (uint8_t *)SAIRxBuf, (uint16_t)sizeof(SAIRxBuf) / sizeof(uint32_t));
+#if 1
+	/* configure CODEC for two channels PDM MIC */
+	res->val[0] = 0x02; res->val[1] = 0x01;
+	CODEC_WriteRegisters(res->val[0], &res->val[1], 1);
+	tx_thread_sleep(3);		/* wait until CODEC out of sleep */
+	res->val[0] = 0x07; res->val[1] = 0x60;		/* 48KHz, 24bit samples */
+	CODEC_WriteRegisters(res->val[0], &res->val[1], 1);
+	res->val[0] = 0x0B; res->val[1] = 0x00;
+	CODEC_WriteRegisters(res->val[0], &res->val[1], 1);
+	res->val[0] = 0x0C; res->val[1] = 0x20;
+	CODEC_WriteRegisters(res->val[0], &res->val[1], 1);
+	res->val[0] = 0x1F; res->val[1] = 0x00;
+	CODEC_WriteRegisters(res->val[0], &res->val[1], 1);
+	res->val[0] = 0x22; res->val[1] = 0x41;
+	CODEC_WriteRegisters(res->val[0], &res->val[1], 1);
+	res->val[0] = 0x2B; res->val[1] = 0x40;
+	CODEC_WriteRegisters(res->val[0], &res->val[1], 1);
+	res->val[0] = 0x3C; res->val[1] = 0x40;
+	CODEC_WriteRegisters(res->val[0], &res->val[1], 1);
+	res->val[0] = 0x3E; res->val[1] = 0xC9;
+	CODEC_WriteRegisters(res->val[0], &res->val[1], 1);
+	res->val[0] = 0x41; res->val[1] = 0x40;
+	CODEC_WriteRegisters(res->val[0], &res->val[1], 1);
+	res->val[0] = 0x43; res->val[1] = 0xC9;
+	CODEC_WriteRegisters(res->val[0], &res->val[1], 1);
+	res->val[0] = 0x73; res->val[1] = 0xC0;
+	CODEC_WriteRegisters(res->val[0], &res->val[1], 1);
+	res->val[0] = 0x74; res->val[1] = 0xC0;
+	CODEC_WriteRegisters(res->val[0], &res->val[1], 1);
+	res->val[0] = 0x75; res->val[1] = 0x60;
+	CODEC_WriteRegisters(res->val[0], &res->val[1], 1);
+
+	tx_thread_sleep(10);	/* necessary to wait here! */
+	res->val[0] = 0x77;
+	/* cross check if all is OK */
+	CODEC_ReadRegisters(res->val[0], &(res->val[0]), 1);
+	if (res->val[0] == 0xE0)
+		print_log(out, "OK\r\n");
+	else
+		print_log(out, "FAIL\r\n");
+#endif
+#endif
+	return CMD_DEC_OK;
+}
+
+ECMD_DEC_Status CMD_codecr(TCMD_DEC_Results *res, EResultOut out)
+{
+	unsigned long l;
+	unsigned long i;
+
+	if (res->val[1] == 0)
+		res->val[1] = 1;
+	l = res->val[1];
+	CODEC_ReadRegisters(res->val[0], &(res->val[0]), res->val[1]);
+
+	for (i = 0; i < l; i++)
+	{
+		print_log(out, "%02x ", (unsigned int)res->val[i]);
+	}
+	print_log(out, "\r\n");
+
+	return CMD_DEC_OK;
+}
+
+ECMD_DEC_Status CMD_codecw(TCMD_DEC_Results *res, EResultOut out)
+{
+	(void)out;
+
+	CODEC_WriteRegisters(res->val[0], &(res->val[1]), res->num - 1);
+
+	return CMD_DEC_OK;
+}
+

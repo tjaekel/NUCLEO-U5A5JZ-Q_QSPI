@@ -30,7 +30,9 @@ extern DMA_HandleTypeDef handle_GPDMA1_Channel6;	//SPI3 DMA Rx
 extern DMA_HandleTypeDef handle_GPDMA1_Channel12;	//QSPI DMA
 #endif
 extern OSPI_HandleTypeDef hospi1;
+#ifndef CODEC_SAI
 extern UART_HandleTypeDef huart1;
+#endif
 extern SPI_HandleTypeDef  hspi3;
 #ifndef STM32U5A5xx
 extern PCD_HandleTypeDef hpcd_USB_OTG_FS;
@@ -38,6 +40,16 @@ extern PCD_HandleTypeDef hpcd_USB_OTG_FS;
 extern PCD_HandleTypeDef hpcd_USB_OTG_HS;
 #endif
 extern TIM_HandleTypeDef htim6;
+
+extern DMA_NodeTypeDef Node_GPDMA1_Channel4;
+extern DMA_QListTypeDef List_GPDMA1_Channel4;
+extern DMA_HandleTypeDef handle_GPDMA1_Channel4;	//SAI CODEC DMA
+extern SAI_HandleTypeDef hsai_BlockA1;
+
+extern DMA_NodeTypeDef Node_GPDMA1_Channel5;
+extern DMA_QListTypeDef List_GPDMA1_Channel5;
+extern DMA_HandleTypeDef handle_GPDMA1_Channel5;
+extern SAI_HandleTypeDef hsai_BlockB1;
 
 #ifndef NUCLEO_BOARD
 void LED_Toggle(int dly);
@@ -151,14 +163,15 @@ void GPDMA1_Channel7_IRQHandler(void)
 }
 #endif
 
-/**
-  * @brief This function handles SPI1 global interrupt - SPI3 DMA Rx
-  */
-void SPI3_IRQHandler(void)
+void GPDMA1_Channel4_IRQHandler(void)
 {
-  HAL_SPI_IRQHandler(&hspi3);
+  HAL_DMA_IRQHandler(&handle_GPDMA1_Channel4);
 }
-#endif
+
+void GPDMA1_Channel5_IRQHandler(void)
+{
+  HAL_DMA_IRQHandler(&handle_GPDMA1_Channel5);
+}
 
 #ifdef QSPI_DMA
 /**
@@ -167,6 +180,15 @@ void SPI3_IRQHandler(void)
 void GPDMA1_Channel12_IRQHandler(void)
 {
   HAL_DMA_IRQHandler(&handle_GPDMA1_Channel12);
+}
+#endif
+
+/**
+  * @brief This function handles SPI1 global interrupt - SPI3 DMA Rx
+  */
+void SPI3_IRQHandler(void)
+{
+  HAL_SPI_IRQHandler(&hspi3);
 }
 #endif
 
@@ -182,6 +204,7 @@ void TIM6_IRQHandler(void)
 #endif
 }
 
+#ifndef CODEC_SAI
 /**
   * @brief This function handles USART1 global interrupt.
   */
@@ -189,6 +212,7 @@ void USART1_IRQHandler(void)
 {
   HAL_UART_IRQHandler(&huart1);
 }
+#endif
 
 /**
   * @brief This function handles USB OTG HS global interrupt.
@@ -220,3 +244,22 @@ void OCTOSPI1_IRQHandler(void)
   HAL_OSPI_IRQHandler(&hospi1);
 }
 #endif
+
+/**
+  * @brief This function handles Serial Audio Interface 1 global interrupt.
+  */
+void SAI1_IRQHandler(void)
+{
+#ifdef SPDIF_TEST
+  HAL_SAI_IRQHandler(&hsai_BlockB1);
+#else
+  HAL_SAI_IRQHandler(&hsai_BlockA1);
+#endif
+}
+
+void SAI2_IRQHandler(void)
+{
+  ////HAL_SAI_IRQHandler(&hsai_BlockA1);
+  HAL_SAI_IRQHandler(&hsai_BlockB1);
+}
+

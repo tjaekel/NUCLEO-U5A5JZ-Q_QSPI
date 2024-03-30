@@ -26,6 +26,7 @@
 #include "temp_sensor.h"
 
 #include "linked_list.h"
+#include "PSRAM.h"
 
 /** TODO
  * a) UART1 on 1V8 does not work: even with OpenDrain it fails
@@ -36,11 +37,15 @@
 ADC_HandleTypeDef hadc1;
 #endif
 
-DCACHE_HandleTypeDef hdcache1;
-OSPI_HandleTypeDef hospi1;
-SPI_HandleTypeDef  hspi3;
-UART_HandleTypeDef huart1;
-DMA_HandleTypeDef handle_GPDMA1_Channel0;
+DCACHE_HandleTypeDef 	hdcache1;
+OSPI_HandleTypeDef 		hospi1;
+SPI_HandleTypeDef 		hspi1;
+SPI_HandleTypeDef  		hspi3;
+UART_HandleTypeDef 		huart1;
+SAI_HandleTypeDef		hsai_BlockA1;
+SAI_HandleTypeDef 		hsai_BlockB1;
+
+DMA_HandleTypeDef 		handle_GPDMA1_Channel0;
 #ifdef SPI3_DMA
 #if 0
 DMA_HandleTypeDef handle_GPDMA1_Channel7;		//SPI Tx
@@ -50,8 +55,13 @@ DMA_HandleTypeDef handle_GPDMA1_Channel6;		//SPI Rx
 #ifdef QSPI_DMA
 DMA_HandleTypeDef handle_GPDMA1_Channel12;		//QSPI DMA
 #endif
+DMA_NodeTypeDef Node_GPDMA1_Channel4;
+DMA_QListTypeDef List_GPDMA1_Channel4;
+DMA_HandleTypeDef handle_GPDMA1_Channel4;		//SAI CODEC DMA
 
-I2C_HandleTypeDef hi2c3;
+DMA_NodeTypeDef Node_GPDMA1_Channel5;
+DMA_QListTypeDef List_GPDMA1_Channel5;
+DMA_HandleTypeDef handle_GPDMA1_Channel5;
 
 #ifndef STM32U5A5xx
 PCD_HandleTypeDef hpcd_USB_OTG_FS;
@@ -64,7 +74,7 @@ static void SystemPower_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_GPDMA1_Init(void);
 static void MX_ICACHE_Init(void);
-#if 1
+#ifdef ENABLE_DCACHE
 static void MX_DCACHE1_Init(void);
 #endif
 #if 0
@@ -74,10 +84,15 @@ static void MX_UCPD1_Init(void);
 static void MX_ADC1_Init(void);
 #endif
 void MX_OCTOSPI1_Init(void);
+void MX_SPI1_Init(void);
 void MX_SPI3_Init(void);
 #ifndef NUCLEO_BOARD
+I2C_HandleTypeDef hi2c3;
+I2C_HandleTypeDef hi2c1;
 static void MX_I2C3_Init(void);
+static void MX_I2C1_Init(void);
 #endif
+void MX_SAI1_Init(void);
 
 /**
   * @brief  The application entry point.
@@ -99,17 +114,25 @@ int main(void)
   /* Configure the System Power */
   SystemPower_Config();
 
+  HAL_PWREx_DisableUCPDDeadBattery();
+
   /* Initialize all configured peripherals */
   MX_GPDMA1_Init();
   MX_ICACHE_Init();
+#ifdef ENABLE_DCACHE
   MX_DCACHE1_Init();	/* just for external memory */
+#endif
 
 #ifndef NUCLEO_BOARD
   MX_I2C3_Init();
+  MX_I2C1_Init();
 #endif
 
   MX_GPIO_Init();
-  MX_USART1_UART_Init();
+
+#ifndef CODEC_SAI
+  MX_USART1_UART_Init();	/* it conflicts with SAI1 for CODEC! */
+#endif
 #if 0
   MX_UCPD1_Init();
 #endif
@@ -117,7 +140,17 @@ int main(void)
   MX_ADC1_Init();
 #endif
   MX_OCTOSPI1_Init();
+
+#ifdef PDM_MCU
+  PSRAM_Init();
+#endif
+
+  ////MX_SPI1_Init();	/* we do it later, after USB is up - via command */
+#ifndef PDM_MCU
   MX_SPI3_Init();
+#endif
+
+  ////MX_SAI1_Init();
 
   MEM_PoolInit();
   /* Call PreOsInit function */
@@ -210,8 +243,8 @@ void SystemClock_Config(void)
   /** Initializes the CPU, AHB and APB buses clocks
   */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2
-                              |RCC_CLOCKTYPE_PCLK3;
+                                |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2
+                                |RCC_CLOCKTYPE_PCLK3;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
@@ -243,10 +276,42 @@ void SystemClock_Config(void)
 #endif
 }
 
+#if 0
+/**
+  * @brief Peripherals Common Clock Configuration
+  * @retval None
+  */
+void PeriphCommonClock_Config(void)
+{
+  RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
+
+  /** Initializes the common periph clock
+  */
+  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_OSPI|RCC_PERIPHCLK_SAI1;
+  PeriphClkInit.Sai1ClockSelection = RCC_SAI1CLKSOURCE_PLL2;
+  PeriphClkInit.OspiClockSelection = RCC_OSPICLKSOURCE_PLL2;
+  PeriphClkInit.PLL2.PLL2Source = RCC_PLLSOURCE_HSE;
+  PeriphClkInit.PLL2.PLL2M = 2;
+  PeriphClkInit.PLL2.PLL2N = 50;
+  PeriphClkInit.PLL2.PLL2P = 2;
+  PeriphClkInit.PLL2.PLL2Q = 1;
+  PeriphClkInit.PLL2.PLL2R = 2;
+  PeriphClkInit.PLL2.PLL2RGE = RCC_PLLVCIRANGE_0;
+  PeriphClkInit.PLL2.PLL2FRACN = 0;
+  PeriphClkInit.PLL2.PLL2ClockOut = RCC_PLL2_DIVP|RCC_PLL2_DIVQ;
+  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
+  {
+    Error_Handler();
+  }
+}
+
+#endif
+
 /**
   * @brief Power Configuration
   * @retval None
   */
+#if 0
 static void SystemPower_Config(void)
 {
   HAL_PWREx_EnableVddIO2();
@@ -263,6 +328,47 @@ static void SystemPower_Config(void)
 
   ////HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1);
 }
+#else
+/**
+  * @brief Power Configuration
+  * @retval None
+  */
+static void SystemPower_Config(void)
+{
+  PWR_PVDTypeDef sConfigPVD = {0};
+
+  HAL_PWREx_EnableVddIO2();
+
+  /*
+   * Switch to SMPS regulator instead of LDO
+   */
+  if (HAL_PWREx_ConfigSupply(PWR_SMPS_SUPPLY) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  LL_SYSCFG_EnableVddCompensationCell();
+
+  ////HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1);
+
+  /*
+   * PVD Configuration
+   */
+  sConfigPVD.PVDLevel = PWR_PVDLEVEL_0;
+  sConfigPVD.Mode = PWR_PVD_MODE_NORMAL;
+  HAL_PWR_ConfigPVD(&sConfigPVD);
+
+  /*
+   * Enable the PVD Output
+   */
+  HAL_PWR_EnablePVD();
+
+  /*
+   * Disable the internal Pull-Up in Dead Battery pins of UCPD peripheral
+   */
+  HAL_PWREx_DisableUCPDDeadBattery();
+}
+#endif
 
 /**
   * @brief ADC1 Initialization Function
@@ -380,6 +486,13 @@ static void MX_GPDMA1_Init(void)
     HAL_NVIC_SetPriority(GPDMA1_Channel12_IRQn, 0, 0);
     HAL_NVIC_EnableIRQ(GPDMA1_Channel12_IRQn);
 #endif
+
+    /* GPDMA1 interrupt Init */
+    HAL_NVIC_SetPriority(GPDMA1_Channel4_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(GPDMA1_Channel4_IRQn);
+
+    HAL_NVIC_SetPriority(GPDMA1_Channel5_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(GPDMA1_Channel5_IRQn);
 }
 
 /**
@@ -405,7 +518,7 @@ static void MX_ICACHE_Init(void)
   * @param None
   * @retval None
   */
-#if 1
+#ifdef ENABLE_DCACHE
 static void MX_DCACHE1_Init(void)
 {
   hdcache1.Instance = DCACHE1;
@@ -429,12 +542,33 @@ void MX_OCTOSPI1_Init(void)
 
   /* OCTOSPI1 parameter configuration*/
   hospi1.Instance = OCTOSPI1;
+#ifdef PDM_MCU
+  hospi1.Init.FifoThreshold = 1;
+#else
   hospi1.Init.FifoThreshold = 4;			//was 1 - use max. FIFO size - 32BYTES! max. as 32-4
+#endif
   hospi1.Init.DualQuad = HAL_OSPI_DUALQUAD_DISABLE;
   hospi1.Init.MemoryType = HAL_OSPI_MEMTYPE_MICRON;
-  hospi1.Init.DeviceSize = 32;
+#ifdef PDM_MCU
+  hospi1.Init.DeviceSize = 24;		//number of address bits!
   hospi1.Init.ChipSelectHighTime = 1;
+#else
+  hospi1.Init.DeviceSize = 32;		//number of address bits!
+  hospi1.Init.ChipSelectHighTime = 1;
+#endif
   hospi1.Init.FreeRunningClock = HAL_OSPI_FREERUNCLK_DISABLE;	//HAL_OSPI_FREERUNCLK_DISABLE;
+#ifdef PDM_MCU
+  hospi1.Init.ClockMode = HAL_OSPI_CLOCK_MODE_0;
+  hospi1.Init.WrapSize = HAL_OSPI_WRAP_NOT_SUPPORTED;
+  hospi1.Init.ClockPrescaler = 5;			//80 MHz: max. is 104 MHz, 160 NHz is too fast!
+  /* we have PLL2N as 200MHz - 40 MHz in SPI mode first */
+  hospi1.Init.SampleShifting = HAL_OSPI_SAMPLE_SHIFTING_NONE;
+  hospi1.Init.DelayHoldQuarterCycle = HAL_OSPI_DHQC_ENABLE;
+  hospi1.Init.ChipSelectBoundary = 4;
+  hospi1.Init.DelayBlockBypass = HAL_OSPI_DELAY_BLOCK_USED;
+  hospi1.Init.MaxTran = 0;
+  hospi1.Init.Refresh = 256;	//320;
+#else
   hospi1.Init.ClockMode = gCFGparams.QSPImode;
   hospi1.Init.WrapSize = HAL_OSPI_WRAP_NOT_SUPPORTED;
   hospi1.Init.ClockPrescaler = gCFGparams.QSPIdiv;
@@ -453,6 +587,7 @@ void MX_OCTOSPI1_Init(void)
 	  hospi1.Init.DelayBlockBypass = HAL_OSPI_DELAY_BLOCK_BYPASSED;
   hospi1.Init.MaxTran = 0;
   hospi1.Init.Refresh = 0;
+#endif
   if (HAL_OSPI_Init(&hospi1) != HAL_OK)
   {
     Error_Handler();
@@ -465,6 +600,10 @@ void MX_OCTOSPI1_Init(void)
   {
     Error_Handler();
   }
+#ifdef PDM_MCU
+  HAL_OSPI_DLYB_Cfg_Struct.Units = 0;
+  HAL_OSPI_DLYB_Cfg_Struct.PhaseSel = 0;
+#else
   if (gCFGparams.QSPIdlyb)
   {
 	  HAL_OSPI_DLYB_Cfg_Struct.Units = gCFGparams.DLYBunit;
@@ -475,6 +614,7 @@ void MX_OCTOSPI1_Init(void)
 	  HAL_OSPI_DLYB_Cfg_Struct.Units = 0;
 	  HAL_OSPI_DLYB_Cfg_Struct.PhaseSel = 0;
   }
+#endif
   if (HAL_OSPI_DLYB_SetConfig(&hospi1, &HAL_OSPI_DLYB_Cfg_Struct) != HAL_OK)
   {
     Error_Handler();
@@ -573,6 +713,7 @@ static void MX_UCPD1_Init(void)
 }
 #endif
 
+#ifndef CODEC_SAI
 /**
   * @brief USART1 Initialization Function
   * @param None
@@ -608,6 +749,7 @@ void MX_USART1_UART_Init(void)
     Error_Handler();
   }
 }
+#endif
 
 /**
   * @brief USB_OTG_HS Initialization Function
@@ -667,12 +809,16 @@ static void MX_GPIO_Init(void)
   GPIO_InitTypeDef GPIO_InitStruct = {0};
 
   /* GPIO Ports Clock Enable */
-  __HAL_RCC_GPIOH_CLK_ENABLE();
-  __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
+  __HAL_RCC_GPIOC_CLK_ENABLE();
+  __HAL_RCC_GPIOD_CLK_ENABLE();
+#ifndef PDM_CMU
   __HAL_RCC_GPIOE_CLK_ENABLE();
+  __HAL_RCC_GPIOF_CLK_ENABLE();
   __HAL_RCC_GPIOG_CLK_ENABLE();
+  __HAL_RCC_GPIOH_CLK_ENABLE();
+#endif
 
 #ifdef NUCLEO_BOARD
   /*Configure GPIO pin Output Level */
@@ -708,8 +854,9 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5|GPIO_PIN_8, GPIO_PIN_RESET);
 
+  //WHY ?????
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, GPIO_PIN_RESET);
+  ////HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, GPIO_PIN_RESET);
 
 #if 1
   /*Configure GPIO pin : PC13 - LED */
@@ -734,19 +881,22 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Alternate = GPIO_AF10_OCTOSPI1;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PA5 PA8 */
-  GPIO_InitStruct.Pin = GPIO_PIN_5|GPIO_PIN_8;
+  /*Configure GPIO pins : PA5 */
+  GPIO_InitStruct.Pin = GPIO_PIN_5;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PB15 PB7 PB8 */
-  GPIO_InitStruct.Pin = GPIO_PIN_15|GPIO_PIN_7|GPIO_PIN_8;
+  //WHY???
+  ////GPIO_InitStruct.Pin = GPIO_PIN_15|GPIO_PIN_7|GPIO_PIN_8;
+  GPIO_InitStruct.Pin = GPIO_PIN_15|GPIO_PIN_8;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
+#ifdef WHY
   /*Configure GPIO pin : PB6 */
   GPIO_InitStruct.Pin = GPIO_PIN_6;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
@@ -754,6 +904,85 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 #endif
+
+#ifdef XXXX
+  //TEST
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
+  GPIO_InitStruct.Pin = GPIO_PIN_4;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+#endif
+
+#if 1
+  /* PB15 is CODEC SHDNZ - release the CODEC */
+  /** something wrong: if we do - USB is dead, voltage 1V8 is too low... */
+  /* USB fails if this is high at start ! */
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_15, GPIO_PIN_RESET);
+  GPIO_InitStruct.Pin = GPIO_PIN_15;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+#endif
+
+#if 0
+  /* test PB5 - OK, it works! */
+  /** something wrong: if we do - USB is dead, voltage 1V8 is too low... */
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, GPIO_PIN_RESET);
+  GPIO_InitStruct.Pin = GPIO_PIN_5;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+#endif
+#endif
+}
+
+/**
+  * @brief SPI1 Initialization Function
+  * @param None
+  * @retval None
+  */
+void MX_SPI1_Init(void)
+{
+  SPI_AutonomousModeConfTypeDef HAL_SPI_AutonomousMode_Cfg_Struct = {0};
+
+  /* SPI1 parameter configuration*/
+  hspi1.Instance = SPI1;
+  hspi1.Init.Mode = SPI_MODE_MASTER;
+  hspi1.Init.Direction = SPI_DIRECTION_2LINES;
+  hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
+  hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
+  hspi1.Init.CLKPhase = SPI_PHASE_2EDGE;
+  hspi1.Init.NSS = SPI_NSS_HARD_OUTPUT;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_8;
+  hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
+  hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
+  hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+  hspi1.Init.CRCPolynomial = 0x7;
+  hspi1.Init.NSSPMode = SPI_NSS_PULSE_DISABLE;	//SPI_NSS_PULSE_ENABLE;
+  hspi1.Init.NSSPolarity = SPI_NSS_POLARITY_LOW;
+  hspi1.Init.FifoThreshold = SPI_FIFO_THRESHOLD_01DATA;
+  hspi1.Init.MasterSSIdleness = SPI_MASTER_SS_IDLENESS_00CYCLE;
+  hspi1.Init.MasterInterDataIdleness = SPI_MASTER_INTERDATA_IDLENESS_00CYCLE;
+  hspi1.Init.MasterReceiverAutoSusp = SPI_MASTER_RX_AUTOSUSP_DISABLE;
+  hspi1.Init.MasterKeepIOState = SPI_MASTER_KEEP_IO_STATE_ENABLE;
+  hspi1.Init.IOSwap = SPI_IO_SWAP_DISABLE;
+  hspi1.Init.ReadyMasterManagement = SPI_RDY_MASTER_MANAGEMENT_INTERNALLY;
+  hspi1.Init.ReadyPolarity = SPI_RDY_POLARITY_HIGH;
+  if (HAL_SPI_Init(&hspi1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  HAL_SPI_AutonomousMode_Cfg_Struct.TriggerState = SPI_AUTO_MODE_DISABLE;
+  HAL_SPI_AutonomousMode_Cfg_Struct.TriggerSelection = SPI_GRP1_GPDMA_CH0_TCF_TRG;
+  HAL_SPI_AutonomousMode_Cfg_Struct.TriggerPolarity = SPI_TRIG_POLARITY_RISING;
+  if (HAL_SPIEx_SetConfigAutonomousMode(&hspi1, &HAL_SPI_AutonomousMode_Cfg_Struct) != HAL_OK)
+  {
+    Error_Handler();
+  }
 }
 
 void MX_SPI3_Init(void)
@@ -834,7 +1063,7 @@ static void MX_I2C3_Init(void)
 {
   /* used for I2C flash */
   hi2c3.Instance = I2C3;
-  hi2c3.Init.Timing = 0x00C01F67;
+  hi2c3.Init.Timing = 0x00C01F67;			//800 KHz
   hi2c3.Init.OwnAddress1 = 0xA0;			//we are not slave, any should be fine
   hi2c3.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
   hi2c3.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
@@ -868,7 +1097,120 @@ static void MX_I2C3_Init(void)
     Error_Handler();
   }
 }
+
+/* IMU Sensor */
+static void MX_I2C1_Init(void)
+{
+  /* used for I2C flash */
+  hi2c1.Instance = I2C1;
+  hi2c1.Init.Timing = 0x00F07BFF;
+  hi2c1.Init.OwnAddress1 = 0xA0;			//we are not slave, any should be fine
+  hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+  hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+  hi2c1.Init.OwnAddress2 = 0;
+  hi2c1.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
+  hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+  hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+  if (HAL_I2C_Init(&hi2c1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure Analogue filter
+  */
+  if (HAL_I2CEx_ConfigAnalogFilter(&hi2c1, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure Digital filter
+  */
+  if (HAL_I2CEx_ConfigDigitalFilter(&hi2c1, 0) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** I2C Fast mode Plus enable
+  */
+  if (HAL_I2CEx_ConfigFastModePlus(&hi2c1, I2C_FASTMODEPLUS_ENABLE) != HAL_OK)
+  {
+    Error_Handler();
+  }
+}
 #endif
+
+/**
+  * @brief SAI1 Initialization Function
+  * @param None
+  * @retval None
+  */
+void MX_SAI_Init(void)
+{
+#ifdef SPDIF_TEST_A
+	  hsai_BlockB1.Instance = SAI1_Block_A;
+	  hsai_BlockB1.Init.Protocol = SAI_SPDIF_PROTOCOL;
+	  hsai_BlockB1.Init.AudioMode = SAI_MODEMASTER_TX;
+	  hsai_BlockB1.Init.Synchro = SAI_ASYNCHRONOUS;
+	  hsai_BlockB1.Init.OutputDrive = SAI_OUTPUTDRIVE_ENABLE;
+	  ////hsai_BlockB1.Init.NoDivider = SAI_MASTERDIVIDER_ENABLE;	//SAI_MASTERDIVIDER_ENABLE;
+	  hsai_BlockB1.Init.FIFOThreshold = SAI_FIFOTHRESHOLD_EMPTY;
+	  hsai_BlockB1.Init.AudioFrequency = SAI_AUDIO_FREQUENCY_48K;
+	  ////hsai_BlockB1.Init.DataSize = SAI_DATASIZE_32;		//set automatically
+	  hsai_BlockB1.Init.SynchroExt = SAI_SYNCEXT_DISABLE;
+	  hsai_BlockB1.Init.MckOutput = SAI_MCK_OUTPUT_DISABLE;
+	  hsai_BlockB1.Init.MonoStereoMode = SAI_STEREOMODE;
+	  hsai_BlockB1.Init.CompandingMode = SAI_NOCOMPANDING;
+	  hsai_BlockB1.Init.PdmInit.Activation = DISABLE;
+	  hsai_BlockB1.Init.PdmInit.MicPairsNbr = 1;
+	  hsai_BlockB1.Init.PdmInit.ClockEnable = SAI_PDM_CLOCK1_ENABLE;
+	  if (HAL_SAI_Init(&hsai_BlockB1) != HAL_OK)
+	  {
+		    Error_Handler();
+	  }
+#else
+  hsai_BlockB1.Instance = SAI2_Block_B;
+  hsai_BlockB1.Init.Protocol = SAI_SPDIF_PROTOCOL;
+  hsai_BlockB1.Init.AudioMode = SAI_MODEMASTER_TX;
+  hsai_BlockB1.Init.Synchro = SAI_ASYNCHRONOUS;
+  hsai_BlockB1.Init.OutputDrive = SAI_OUTPUTDRIVE_ENABLE;
+  hsai_BlockB1.Init.NoDivider = SAI_MASTERDIVIDER_DISABLE;
+  hsai_BlockB1.Init.FIFOThreshold = SAI_FIFOTHRESHOLD_EMPTY;
+  hsai_BlockB1.Init.AudioFrequency = SAI_AUDIO_FREQUENCY_48K;
+  hsai_BlockB1.Init.DataSize = SAI_DATASIZE_32;			//should not be necessary
+  hsai_BlockB1.Init.SynchroExt = SAI_SYNCEXT_DISABLE;
+  hsai_BlockB1.Init.MckOutput = SAI_MCK_OUTPUT_DISABLE;
+  hsai_BlockB1.Init.MonoStereoMode = SAI_STEREOMODE;
+  hsai_BlockB1.Init.CompandingMode = SAI_NOCOMPANDING;
+  hsai_BlockB1.Init.PdmInit.Activation = DISABLE;
+  hsai_BlockB1.Init.PdmInit.MicPairsNbr = 1;
+  hsai_BlockB1.Init.PdmInit.ClockEnable = SAI_PDM_CLOCK1_ENABLE;
+  if (HAL_SAI_Init(&hsai_BlockB1) != HAL_OK)
+  {
+	    Error_Handler();
+  }
+#ifndef SPDIF_TEST
+  hsai_BlockA1.Instance = SAI1_Block_A;
+  hsai_BlockA1.Init.AudioMode = SAI_MODEMASTER_RX;
+  hsai_BlockA1.Init.Synchro = SAI_ASYNCHRONOUS;
+  hsai_BlockA1.Init.OutputDrive = SAI_OUTPUTDRIVE_ENABLE;
+  hsai_BlockA1.Init.MckOverSampling = SAI_MCK_OVERSAMPLING_DISABLE;
+  hsai_BlockA1.Init.NoDivider = SAI_MASTERDIVIDER_DISABLE;
+  hsai_BlockA1.Init.FIFOThreshold = SAI_FIFOTHRESHOLD_EMPTY;
+  hsai_BlockA1.Init.AudioFrequency = SAI_AUDIO_FREQUENCY_48K;
+  hsai_BlockB1.Init.DataSize = SAI_DATASIZE_32;
+  hsai_BlockA1.Init.SynchroExt = SAI_SYNCEXT_DISABLE;
+  hsai_BlockA1.Init.MckOutput = SAI_MCK_OUTPUT_DISABLE;
+  hsai_BlockA1.Init.MonoStereoMode = SAI_STEREOMODE;
+  hsai_BlockA1.Init.CompandingMode = SAI_NOCOMPANDING;
+  hsai_BlockA1.Init.TriState = SAI_OUTPUT_NOTRELEASED;
+  /* S/PDIF is 24bit or 16bit ! */
+  if (HAL_SAI_InitProtocol(&hsai_BlockA1, SAI_I2S_STANDARD, SAI_PROTOCOL_DATASIZE_32BIT, 2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+#endif
+#endif
+}
 
 void LED_Toggle(int dly)
 {
@@ -1034,6 +1376,7 @@ void HAL_OSPI_RxHalfCpltCallback(OSPI_HandleTypeDef *hospi)
 }
 #endif
 
+
 /**
   * @brief  This function is executed in case of error occurrence.
   * @retval None
@@ -1062,3 +1405,49 @@ void assert_failed(uint8_t *file, uint32_t line)
      ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
 }
 #endif /* USE_FULL_ASSERT */
+
+/* ***************************** */
+void HAL_SAI_TxCpltCallback(SAI_HandleTypeDef *hsai)
+{
+  HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
+  if (hsai->Instance == SAI2_Block_B)
+  {
+  }
+}
+
+/**
+  * @brief  SAI Tx half transfer complete callback.
+  * @param  hsai SAI handle.
+  * @retval None.
+  */
+void HAL_SAI_TxHalfCpltCallback(SAI_HandleTypeDef *hsai)
+{
+  HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
+  if (hsai->Instance == SAI2_Block_B)
+  {
+  }
+}
+
+/**
+  * @brief  SAI Rx transfer complete callback.
+  * @param  hsai SAI handle.
+  * @retval None.
+  */
+void HAL_SAI_RxCpltCallback(SAI_HandleTypeDef *hsai)
+{
+  if (hsai->Instance == SAI1_Block_A)
+  {
+  }
+}
+
+/**
+  * @brief  SAI Rx half transfer complete callback.
+  * @param  hsai SAI handle.
+  * @retval None.
+  */
+void HAL_SAI_RxHalfCpltCallback(SAI_HandleTypeDef *hsai)
+{
+  if (hsai->Instance == SAI1_Block_A)
+  {
+  }
+}

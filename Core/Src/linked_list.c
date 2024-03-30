@@ -29,6 +29,7 @@ DMA_NodeTypeDef Node_tx;
 DMA_QListTypeDef Queue_tx;
 DMA_NodeTypeDef Node_rx;
 DMA_QListTypeDef Queue_rx;
+DMA_QListTypeDef Queue_rx_SAI;
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */

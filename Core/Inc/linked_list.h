@@ -35,6 +35,7 @@ extern DMA_NodeTypeDef Node_tx;
 extern DMA_QListTypeDef Queue_tx;
 extern DMA_NodeTypeDef Node_rx;
 extern DMA_QListTypeDef Queue_rx;
+extern DMA_QListTypeDef Queue_rx_SAI;
 
 HAL_StatusTypeDef MX_Queue_tx_Config(void);
 HAL_StatusTypeDef MX_Queue_rx_Config(void);

@@ -50,7 +50,9 @@ static TX_THREAD ux_device_app_thread;
 
 /* USER CODE BEGIN PV */
 static TX_THREAD ux_cdc_read_thread;
+#ifndef CODEC_SAI
 static TX_THREAD ux_cdc_write_thread;
+#endif
 TX_EVENT_FLAGS_GROUP EventFlag;
 TX_QUEUE ux_app_MsgQueue;
 #ifndef STM32U5A5xx
@@ -90,9 +92,6 @@ UINT MX_USBX_Device_Init(VOID *memory_ptr)
   UCHAR *pointer;
   TX_BYTE_POOL *byte_pool = (TX_BYTE_POOL*)memory_ptr;
 
-  /* USER CODE BEGIN MX_USBX_Device_Init0 */
-
-  /* USER CODE END MX_USBX_Device_Init0 */
   /* Allocate the stack for USBX Memory */
   if (tx_byte_allocate(byte_pool, (VOID **) &pointer,
                        USBX_DEVICE_MEMORY_STACK_SIZE, TX_NO_WAIT) != TX_SUCCESS)
@@ -210,6 +209,7 @@ UINT MX_USBX_Device_Init(VOID *memory_ptr)
     return TX_POOL_ERROR;
   }
 
+#ifndef CODEC_SAI
   /* Create the usbx_cdc_acm_write_thread_entry thread */
   if (tx_thread_create(&ux_cdc_write_thread, "cdc_acm_write_usbx_app_thread_entry",
                        usbx_cdc_acm_write_thread_entry, 1, pointer,
@@ -218,6 +218,7 @@ UINT MX_USBX_Device_Init(VOID *memory_ptr)
   {
     return TX_THREAD_ERROR;
   }
+#endif
 
   /* Create the event flags group */
   if (tx_event_flags_create(&EventFlag, "Event Flag") != TX_SUCCESS)
@@ -238,7 +239,6 @@ UINT MX_USBX_Device_Init(VOID *memory_ptr)
   {
     return TX_QUEUE_ERROR;
   }
-  /* USER CODE END MX_USBX_Device_Init1 */
 
   return ret;
 }
@@ -251,8 +251,6 @@ UINT MX_USBX_Device_Init(VOID *memory_ptr)
 static VOID app_ux_device_thread_entry(ULONG thread_input)
 {
   (void) thread_input;
-
-  /* USER CODE BEGIN app_ux_device_thread_entry */
 
   /* Initialization of USB device */
   USBX_APP_Device_Init();
@@ -294,10 +292,7 @@ static VOID app_ux_device_thread_entry(ULONG thread_input)
       Error_Handler();
     }
   }
-  /* USER CODE END app_ux_device_thread_entry */
 }
-
-/* USER CODE BEGIN 1 */
 
 /**
   * @brief  USBX_APP_Device_Init
@@ -307,9 +302,6 @@ static VOID app_ux_device_thread_entry(ULONG thread_input)
   */
 VOID USBX_APP_Device_Init(VOID)
 {
-  /* USER CODE BEGIN USB_Device_Init_PreTreatment_0 */
-  /* USER CODE END USB_Device_Init_PreTreatment_0 */
-
 /* Initialize the device controller HAL driver */
 #ifndef STM32U5A5xx
   MX_USB_OTG_FS_PCD_Init();
@@ -334,14 +326,9 @@ VOID USBX_APP_Device_Init(VOID)
   HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 1, 0x20);
   HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 2, 0x10);
 
-  /* USER CODE END USB_Device_Init_PreTreatment_1 */
-
   /* Initialize and link controller HAL driver to USBx */
   ux_dcd_stm32_initialize((ULONG)USB_OTG_HS, (ULONG)&hpcd_USB_OTG_HS);
 #endif
-
-  /* USER CODE BEGIN USB_Device_Init_PostTreatment */
-  /* USER CODE END USB_Device_Init_PostTreatment */
 }
 
 /**
@@ -352,9 +339,8 @@ VOID USBX_APP_Device_Init(VOID)
   */
 VOID USBX_APP_UART_Init(UART_HandleTypeDef **huart)
 {
-  /* USER CODE BEGIN USBX_APP_UART_Init */
+#ifndef CODEC_SAI
   MX_USART1_UART_Init();
+#endif
   *huart = &huart1;
-  /* USER CODE END USBX_APP_UART_Init */
 }
-/* USER CODE END 1 */

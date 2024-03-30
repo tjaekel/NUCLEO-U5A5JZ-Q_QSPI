@@ -42,7 +42,9 @@ extern "C" {
 #include "stm32u5xx_nucleo.h"
 
 void Error_Handler(void);
+#ifndef CODEC_SAI
 void MX_USART1_UART_Init(void);
+#endif
 #ifndef STM32U5A5xx
 void MX_USB_OTG_FS_PCD_Init(void);
 #else
@@ -59,13 +61,23 @@ void MX_USB_OTG_HS_PCD_Init(void);
 
 #define CMD_LINE_LEN		(6*1024)			/* length of UART command line (ASCII based) */
 
-#define VERSION_INFO		"V3.1"
+#define VERSION_INFO		"V4.1"
+#ifdef PDM_MCU
+#define VERSION_STRING		"---- PDM MCU - " VERSION_INFO " ----\r\n"
+#else
 #define VERSION_STRING		"---- QSPI MCU - " VERSION_INFO " ----\r\n"
+#endif
 #ifdef NUCLEO_BOARD
 #define BOARD_INFO			"NUCLEO"
 #else
+#ifdef PDM_MCU
+#define	BOARD_INFO			"PDM_MCU"
+#else
 #define	BOARD_INFO			"QSPI_MCU"
 #endif
+#endif
+
+void LED_Status(int val);
 
 #ifdef __cplusplus
 }
