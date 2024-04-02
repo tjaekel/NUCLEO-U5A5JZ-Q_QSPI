@@ -1277,12 +1277,14 @@ ECMD_DEC_Status CMD_memt(TCMD_DEC_Results *res, EResultOut out)
 }
 
 #ifndef SPDIF_TEST
+#define SPDIF_FRAMES			192
 #define SAI_CHANNELS			2		/* stereo, two MIC channels */
 #define SAI_BYTES_PER_SAMPLE	4		/* 24bit, for SPDIF - used as 32bit - buffer as int32_t! */
 #define SAI_AUDIO_FREQ			48		/* 48 KHz */
-#define SAI_BUFFER_SIZE			10		/* as N times 1ms samples - 1 second */
-#define SAI_DOUBLE_BUFFER		2		/* 2 for double buffering! */
-int32_t SAIRxBuf[(SAI_CHANNELS * SAI_AUDIO_FREQ) * SAI_BUFFER_SIZE * SAI_DOUBLE_BUFFER] __aligned(4);
+#define SAI_BUFFER_SIZE			4		/* as N times 1ms samples - 1 second */
+#define SAI_DOUBLE_BUFFER		1		/* 2 for double buffering! */
+////int32_t SAIRxBuf[(SAI_CHANNELS * SAI_AUDIO_FREQ) * SAI_BUFFER_SIZE * SAI_DOUBLE_BUFFER] __aligned(4);
+int32_t SAIRxBuf[SPDIF_FRAMES * 2] __aligned(4);
 #endif
 
 #ifdef SPDIF_TEST
@@ -1311,6 +1313,10 @@ void GenerateSPDIFOut(void)
 		{
 			val |= (CSword & 0x1) << 26;
 			CSword >>= 1;
+		}
+		if (i == 32)
+		{
+			val |= (1 << 26);
 		}
 
 		if (i == 20)
@@ -1348,35 +1354,41 @@ ECMD_DEC_Status CMD_codece(TCMD_DEC_Results *res, EResultOut out)
 #ifdef SPDIF_TEST
 	GenerateSPDIFOut();
 	MX_SAI_Init();
-	HAL_SAI_Transmit_DMA(&hsai_BlockB1, (uint8_t *)SPDIF_out_test, (uint16_t)(sizeof(SPDIF_out_test) / sizeof(uint32_t)));
+#if 1
+	////HAL_SAI_Transmit_DMA(&hsai_BlockB1, (uint8_t *)SPDIF_out_test, (uint16_t)(sizeof(SPDIF_out_test) / sizeof(uint32_t)));		//FAILS!!!!!!!!
+	HAL_SAI_Transmit_IT(&hsai_BlockB1, (uint8_t *)SPDIF_out_test, (uint16_t)(sizeof(SPDIF_out_test) / sizeof(uint32_t)));			//WORKS!
+#else
+	while (1)
+	{
+		HAL_SAI_Transmit(&hsai_BlockB1, (uint8_t *)SPDIF_out_test, (uint16_t)(sizeof(SPDIF_out_test) / sizeof(uint32_t)), 5000);	//WORKS!
+	}
+#endif
 #else
 #if 1
 	/* release CODEC from standby */
 	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_15, GPIO_PIN_SET);
 #endif
-	{
-		size_t i;
-		for (i = 0; i < (sizeof(SAIRxBuf) / sizeof(uint32_t)); i++)
-			SAIRxBuf[i] = 0x12345678;
-	}
 	MX_SAI_Init();
 #if 1
-	HAL_SAI_Receive_DMA(&hsai_BlockA1, (uint8_t *)SAIRxBuf, (uint16_t)sizeof(SAIRxBuf) / sizeof(uint32_t));
+	////HAL_SAI_Receive_DMA(&hsai_BlockA1, (uint8_t *)SAIRxBuf, (uint16_t)sizeof(SAIRxBuf) / sizeof(uint32_t));
+	HAL_SAI_Receive_IT(&hsai_BlockA1, (uint8_t *)SAIRxBuf, (uint16_t)sizeof(SAIRxBuf) / sizeof(uint32_t));
+	HAL_SAI_Transmit_IT(&hsai_BlockB1, (uint8_t *)SAIRxBuf, (uint16_t)(sizeof(SAIRxBuf) / sizeof(uint32_t)));
 
 	/* wait at least 2ms for CODEC out of standby */
-	tx_thread_sleep(SAI_BUFFER_SIZE/2);
+	tx_thread_sleep(4);
 #endif
-	HAL_SAI_Transmit_DMA(&hsai_BlockB1, (uint8_t *)SAIRxBuf, (uint16_t)sizeof(SAIRxBuf) / sizeof(uint32_t));
+	////HAL_SAI_Transmit_DMA(&hsai_BlockB1, (uint8_t *)SAIRxBuf, (uint16_t)sizeof(SAIRxBuf) / sizeof(uint32_t));
+	////HAL_SAI_Transmit_IT(&hsai_BlockB1, (uint8_t *)SAIRxBuf, (uint16_t)(sizeof(SAIRxBuf) / sizeof(uint32_t)));
 #if 1
 	/* configure CODEC for two channels PDM MIC */
 	res->val[0] = 0x02; res->val[1] = 0x01;
 	CODEC_WriteRegisters(res->val[0], &res->val[1], 1);
-	tx_thread_sleep(3);		/* wait until CODEC out of sleep */
+	tx_thread_sleep(5);		/* wait until CODEC out of sleep */
 	res->val[0] = 0x07; res->val[1] = 0x60;		/* 48KHz, 24bit samples */
 	CODEC_WriteRegisters(res->val[0], &res->val[1], 1);
 	res->val[0] = 0x0B; res->val[1] = 0x00;
 	CODEC_WriteRegisters(res->val[0], &res->val[1], 1);
-	res->val[0] = 0x0C; res->val[1] = 0x20;
+	res->val[0] = 0x0C; res->val[1] = 0x20;					//see reg. 0x0B = mono with 0x00 and 0x20!
 	CODEC_WriteRegisters(res->val[0], &res->val[1], 1);
 	res->val[0] = 0x1F; res->val[1] = 0x00;
 	CODEC_WriteRegisters(res->val[0], &res->val[1], 1);
@@ -1386,11 +1398,11 @@ ECMD_DEC_Status CMD_codece(TCMD_DEC_Results *res, EResultOut out)
 	CODEC_WriteRegisters(res->val[0], &res->val[1], 1);
 	res->val[0] = 0x3C; res->val[1] = 0x40;
 	CODEC_WriteRegisters(res->val[0], &res->val[1], 1);
-	res->val[0] = 0x3E; res->val[1] = 0xC9;
+	res->val[0] = 0x3E; res->val[1] = 0xB0;			//gain
 	CODEC_WriteRegisters(res->val[0], &res->val[1], 1);
 	res->val[0] = 0x41; res->val[1] = 0x40;
 	CODEC_WriteRegisters(res->val[0], &res->val[1], 1);
-	res->val[0] = 0x43; res->val[1] = 0xC9;
+	res->val[0] = 0x43; res->val[1] = 0xB0;			//gain
 	CODEC_WriteRegisters(res->val[0], &res->val[1], 1);
 	res->val[0] = 0x73; res->val[1] = 0xC0;
 	CODEC_WriteRegisters(res->val[0], &res->val[1], 1);

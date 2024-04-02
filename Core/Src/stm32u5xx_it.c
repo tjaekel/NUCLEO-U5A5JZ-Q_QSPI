@@ -259,7 +259,6 @@ void SAI1_IRQHandler(void)
 
 void SAI2_IRQHandler(void)
 {
-  ////HAL_SAI_IRQHandler(&hsai_BlockA1);
   HAL_SAI_IRQHandler(&hsai_BlockB1);
 }
 

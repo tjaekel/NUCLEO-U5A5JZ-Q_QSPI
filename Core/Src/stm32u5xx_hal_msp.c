@@ -117,13 +117,13 @@ void HAL_OSPI_MspInit(OSPI_HandleTypeDef* hospi)
     PeriphClkInit.Sai1ClockSelection = RCC_SAI1CLKSOURCE_PLL2;
     PeriphClkInit.OspiClockSelection = RCC_OSPICLKSOURCE_PLL2;
     PeriphClkInit.PLL2.PLL2Source = RCC_PLLSOURCE_HSE;
-    PeriphClkInit.PLL2.PLL2M = 2;		//was 1
-    PeriphClkInit.PLL2.PLL2N = 39;		//40 = 160 MHz, 50 = 200 MHz - the max. for QSPI
-    PeriphClkInit.PLL2.PLL2P = 1;		//SAI1, 50 MHz
+    PeriphClkInit.PLL2.PLL2M = 1;		//was 1
+    PeriphClkInit.PLL2.PLL2N = 36;		//40 = 160 MHz, 50 = 200 MHz - the max. for QSPI
+    PeriphClkInit.PLL2.PLL2P = 2;		//SAI1, 50 MHz
     PeriphClkInit.PLL2.PLL2Q = 1;		//QSPI: 200 MHz
     PeriphClkInit.PLL2.PLL2R = 2;		//not used
     PeriphClkInit.PLL2.PLL2RGE = RCC_PLLVCIRANGE_1;
-    PeriphClkInit.PLL2.PLL2FRACN = 7667;	//max. 8191 - trim for SAI_FS 48 KHz
+    PeriphClkInit.PLL2.PLL2FRACN = 7080;	//7080; 7667;	//max. 8191 - trim for SAI_FS 48 KHz
     ////PeriphClkInit.PLL2.PLL2FRACN = 0;
     PeriphClkInit.PLL2.PLL2ClockOut = RCC_PLL2_DIVP|RCC_PLL2_DIVQ;
     if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
@@ -143,13 +143,12 @@ void HAL_OSPI_MspInit(OSPI_HandleTypeDef* hospi)
     PeriphClkInit.PLL3.PLL3Q = 2;
     PeriphClkInit.PLL3.PLL3R = 2;
     PeriphClkInit.PLL3.PLL3RGE = RCC_PLLVCIRANGE_1;
-    PeriphClkInit.PLL3.PLL3FRACN = 7077;			//7080			7078; -->
+    PeriphClkInit.PLL3.PLL3FRACN = 7080;			//7080			7078; -->
     // it results in 12,288.004 KHz in FW - MCLKDIV should be 2 at the end - but it fails!
     /* but: above 12,288 KHz results in MCLKDIV +1, too large! - so, we have to get a bit below "nominal", resulting in a larger clock offset error:
      * -36Hz, compared to value 7078 with just 4 Hz error!
      * why I cannot use 7078 with 12,288.004 KHz which would be better? The MCLKDIV is wrong by +1!
      */
-
     PeriphClkInit.PLL3.PLL3ClockOut = RCC_PLL3_DIVP;
     if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
     {
@@ -976,7 +975,7 @@ void HAL_SAI_MspInit(SAI_HandleTypeDef* hsai)
         GPIO_InitStruct.Pin = GPIO_PIN_12;
         GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
         GPIO_InitStruct.Pull = GPIO_NOPULL;
-        GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+        GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
         GPIO_InitStruct.Alternate = GPIO_AF13_SAI2;
         HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 #endif

@@ -881,17 +881,23 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Alternate = GPIO_AF10_OCTOSPI1;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PA5 */
+  /*Configure GPIO pins : PA5 - test pin */
   GPIO_InitStruct.Pin = GPIO_PIN_5;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+  /* test pin */
+  GPIO_InitStruct.Pin = GPIO_PIN_8;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PB15 PB7 PB8 */
   //WHY???
   ////GPIO_InitStruct.Pin = GPIO_PIN_15|GPIO_PIN_7|GPIO_PIN_8;
-  GPIO_InitStruct.Pin = GPIO_PIN_15|GPIO_PIN_8;
+  GPIO_InitStruct.Pin = GPIO_PIN_15/*|GPIO_PIN_8*/;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
@@ -1152,12 +1158,12 @@ void MX_SAI_Init(void)
 	  hsai_BlockB1.Init.AudioMode = SAI_MODEMASTER_TX;
 	  hsai_BlockB1.Init.Synchro = SAI_ASYNCHRONOUS;
 	  hsai_BlockB1.Init.OutputDrive = SAI_OUTPUTDRIVE_ENABLE;
-	  ////hsai_BlockB1.Init.NoDivider = SAI_MASTERDIVIDER_ENABLE;	//SAI_MASTERDIVIDER_ENABLE;
+	  hsai_BlockB1.Init.NoDivider = SAI_MASTERDIVIDER_DISABLE;	//SAI_MASTERDIVIDER_ENABLE;
 	  hsai_BlockB1.Init.FIFOThreshold = SAI_FIFOTHRESHOLD_EMPTY;
 	  hsai_BlockB1.Init.AudioFrequency = SAI_AUDIO_FREQUENCY_48K;
-	  ////hsai_BlockB1.Init.DataSize = SAI_DATASIZE_32;		//set automatically
+	  hsai_BlockB1.Init.DataSize = SAI_DATASIZE_32;		//set automatically
 	  hsai_BlockB1.Init.SynchroExt = SAI_SYNCEXT_DISABLE;
-	  hsai_BlockB1.Init.MckOutput = SAI_MCK_OUTPUT_DISABLE;
+	  hsai_BlockB1.Init.MckOutput = SAI_MCK_OUTPUT_ENABLE;
 	  hsai_BlockB1.Init.MonoStereoMode = SAI_STEREOMODE;
 	  hsai_BlockB1.Init.CompandingMode = SAI_NOCOMPANDING;
 	  hsai_BlockB1.Init.PdmInit.Activation = DISABLE;
@@ -1407,11 +1413,64 @@ void assert_failed(uint8_t *file, uint32_t line)
 #endif /* USE_FULL_ASSERT */
 
 /* ***************************** */
+#define SPDIF_FRAMES	192
+#define SPDIF_CS_WORD	0x02010204;		/* 48KHz, no copy..., but w/o channel */
+extern int32_t SAIRxBuf[192 * 2];
+
+void ModifySPDIFOut(void)
+{
+	int i;
+	int32_t *p = SAIRxBuf;
+#if 0
+	unsigned long CSword = SPDIF_CS_WORD;
+#endif
+
+	for (i = 0; i < SPDIF_FRAMES; i++)
+	{
+		*p &= 0x00FFFFFF;
+		*(p + 1) &= 0x00FFFFFF;
+#if 0
+		if (i < 32)
+		{
+			*p |= (CSword & 0x1) << 26;
+			*(p + 1) |= (CSword & 0x1) << 26;
+			CSword >>= 1;
+		}
+
+		if (i == 32)
+#if 0
+		{
+			*p |= (1 << 26);
+			*(p + 1) |= (1 << 26);
+		}
+#else
+			return;
+#endif
+		if (i == 20)
+		{
+			*p |= (1 << 26);	/* channel A */
+		}
+		else if (i == 21)
+		{
+			*(p + 1) |= (1 << 26);	/* channel B */
+		}
+#endif
+		p += 2;
+	}
+}
+
 void HAL_SAI_TxCpltCallback(SAI_HandleTypeDef *hsai)
 {
   HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
   if (hsai->Instance == SAI2_Block_B)
   {
+#ifdef SPDIF_TEST
+	  extern int32_t SPDIF_out_test[2 * 192];
+	  HAL_SAI_Transmit_IT(&hsai_BlockB1, (uint8_t *)SPDIF_out_test, (uint16_t)(sizeof(SPDIF_out_test) / sizeof(uint32_t)));
+#else
+	  ////ModifySPDIFOut();
+	  HAL_SAI_Transmit_IT(&hsai_BlockB1, (uint8_t *)SAIRxBuf, (uint16_t)(sizeof(SAIRxBuf) / sizeof(uint32_t)));
+#endif
   }
 }
 
@@ -1437,6 +1496,8 @@ void HAL_SAI_RxCpltCallback(SAI_HandleTypeDef *hsai)
 {
   if (hsai->Instance == SAI1_Block_A)
   {
+	  HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_8);
+	  HAL_SAI_Receive_IT(&hsai_BlockA1, (uint8_t *)SAIRxBuf, (uint16_t)sizeof(SAIRxBuf) / sizeof(uint32_t));
   }
 }
 
