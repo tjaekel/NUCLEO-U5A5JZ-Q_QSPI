@@ -52,6 +52,7 @@ DMA_HandleTypeDef handle_GPDMA1_Channel7;		//SPI Tx
 #endif
 DMA_HandleTypeDef handle_GPDMA1_Channel6;		//SPI Rx
 #endif
+DMA_HandleTypeDef handle_GPDMA1_Channel11;		//MDF/ADF
 #ifdef QSPI_DMA
 DMA_HandleTypeDef handle_GPDMA1_Channel12;		//QSPI DMA
 #endif
@@ -480,6 +481,27 @@ static void MX_GPDMA1_Init(void)
         Error_Handler();
     }
 #endif
+
+    extern MDF_HandleTypeDef AdfHandle0;
+    /* Channel11 DAM for ADF */
+    handle_GPDMA1_Channel11.Instance = GPDMA1_Channel11;
+    handle_GPDMA1_Channel11.InitLinkedList.Priority = DMA_HIGH_PRIORITY;
+    handle_GPDMA1_Channel11.InitLinkedList.LinkStepMode = DMA_LSM_FULL_EXECUTION;
+    handle_GPDMA1_Channel11.InitLinkedList.LinkAllocatedPort = DMA_LINK_ALLOCATED_PORT0;
+    handle_GPDMA1_Channel11.InitLinkedList.TransferEventMode = DMA_TCEM_LAST_LL_ITEM_TRANSFER;
+    handle_GPDMA1_Channel11.InitLinkedList.LinkedListMode = DMA_LINKEDLIST_CIRCULAR;
+    if (HAL_DMAEx_List_Init(&handle_GPDMA1_Channel11) != HAL_OK)
+    {
+      Error_Handler();
+    }
+    if (HAL_DMA_ConfigChannelAttributes(&handle_GPDMA1_Channel11, DMA_CHANNEL_NPRIV) != HAL_OK)
+    {
+      Error_Handler();
+    }
+    __HAL_LINKDMA(&AdfHandle0, hdma, handle_GPDMA1_Channel11);
+
+    HAL_NVIC_SetPriority(GPDMA1_Channel11_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(GPDMA1_Channel11_IRQn);
 
 #ifdef QSPI_DMA
     /* QSPI DMA */

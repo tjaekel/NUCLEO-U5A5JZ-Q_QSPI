@@ -31,6 +31,10 @@ DMA_NodeTypeDef Node_rx;
 DMA_QListTypeDef Queue_rx;
 DMA_QListTypeDef Queue_rx_SAI;
 
+DMA_NodeTypeDef NodeRx;
+DMA_QListTypeDef MDFQueue;
+
+
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
 
@@ -122,6 +126,48 @@ HAL_StatusTypeDef MX_Queue_rx_Config(void)
 
   /* Insert Node_rx to Queue */
   ret |= HAL_DMAEx_List_InsertNode_Tail(&Queue_rx, &Node_rx);
+
+   return ret;
+}
+
+/**
+  * @brief  DMA Linked-list MDFQueue configuration
+  * @param  None
+  * @retval None
+  */
+HAL_StatusTypeDef MX_MDFQueue_Config(void)
+{
+  HAL_StatusTypeDef ret = HAL_OK;
+  /* DMA node configuration declaration */
+  DMA_NodeConfTypeDef pNodeConfig;
+
+  /* Set node configuration ################################################*/
+  pNodeConfig.NodeType = DMA_GPDMA_LINEAR_NODE;
+  pNodeConfig.Init.Request = GPDMA1_REQUEST_ADF1_FLT0;
+  pNodeConfig.Init.BlkHWRequest = DMA_BREQ_SINGLE_BURST;
+  pNodeConfig.Init.Direction = DMA_PERIPH_TO_MEMORY;
+  pNodeConfig.Init.SrcInc = DMA_SINC_FIXED;
+  pNodeConfig.Init.DestInc = DMA_DINC_INCREMENTED;
+  pNodeConfig.Init.SrcDataWidth = DMA_SRC_DATAWIDTH_HALFWORD;
+  pNodeConfig.Init.DestDataWidth = DMA_DEST_DATAWIDTH_HALFWORD;
+  pNodeConfig.Init.SrcBurstLength = 1;
+  pNodeConfig.Init.DestBurstLength = 1;
+  pNodeConfig.Init.TransferAllocatedPort = DMA_SRC_ALLOCATED_PORT0|DMA_DEST_ALLOCATED_PORT0;
+  pNodeConfig.Init.TransferEventMode = DMA_TCEM_BLOCK_TRANSFER;
+  pNodeConfig.TriggerConfig.TriggerPolarity = DMA_TRIG_POLARITY_MASKED;
+  pNodeConfig.DataHandlingConfig.DataExchange = DMA_EXCHANGE_NONE;
+  pNodeConfig.DataHandlingConfig.DataAlignment = DMA_DATA_RIGHTALIGN_ZEROPADDED;
+  pNodeConfig.SrcAddress = 0;
+  pNodeConfig.DstAddress = 0;
+  pNodeConfig.DataSize = 0;
+
+  /* Build NodeRx Node */
+  ret |= HAL_DMAEx_List_BuildNode(&pNodeConfig, &NodeRx);
+
+  /* Insert NodeRx to Queue */
+  ret |= HAL_DMAEx_List_InsertNode_Tail(&MDFQueue, &NodeRx);
+
+  ret |= HAL_DMAEx_List_SetCircularMode(&MDFQueue);
 
    return ret;
 }

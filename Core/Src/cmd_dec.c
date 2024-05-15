@@ -20,6 +20,8 @@
 #endif
 #include "SPI1_CODEC.h"
 
+#include "ADF_PDM.h"
+
 #include "app_azure_rtos.h"		/* for delay */
 
 #include "math.h"
@@ -135,6 +137,8 @@ ECMD_DEC_Status CMD_codece(TCMD_DEC_Results *res, EResultOut out);
 ECMD_DEC_Status CMD_codecr(TCMD_DEC_Results *res, EResultOut out);
 ECMD_DEC_Status CMD_codecw(TCMD_DEC_Results *res, EResultOut out);
 
+ECMD_DEC_Status CMD_adf(TCMD_DEC_Results *res, EResultOut out);
+
 ECMD_DEC_Status CMD_test(TCMD_DEC_Results *res, EResultOut out);
 
 const TCMD_DEC_Command Commands[] = {
@@ -244,6 +248,11 @@ const TCMD_DEC_Command Commands[] = {
 				.cmd = (const char *)"codecw",
 				.help = (const char *)"write CODEC registers <addr> <byte> ...",
 				.func = CMD_codecw
+		},
+		{
+				.cmd = (const char *)"adf",
+				.help = (const char *)"stop or start ADF PDM [0|1]",
+				.func = CMD_adf
 		},
 
 		/* chip specific */
@@ -1383,8 +1392,8 @@ ECMD_DEC_Status CMD_codece(TCMD_DEC_Results *res, EResultOut out)
 	/* configure CODEC for two channels PDM MIC */
 	res->val[0] = 0x02; res->val[1] = 0x01;
 	CODEC_WriteRegisters(res->val[0], &res->val[1], 1);
-	tx_thread_sleep(5);		/* wait until CODEC out of sleep */
-	res->val[0] = 0x07; res->val[1] = 0x60;		/* 48KHz, 24bit samples */
+	tx_thread_sleep(5);										/* wait until CODEC out of sleep */
+	res->val[0] = 0x07; res->val[1] = 0x60;					/* 48KHz, 24bit samples */
 	CODEC_WriteRegisters(res->val[0], &res->val[1], 1);
 	res->val[0] = 0x0B; res->val[1] = 0x00;
 	CODEC_WriteRegisters(res->val[0], &res->val[1], 1);
@@ -1448,6 +1457,18 @@ ECMD_DEC_Status CMD_codecw(TCMD_DEC_Results *res, EResultOut out)
 	(void)out;
 
 	CODEC_WriteRegisters(res->val[0], &(res->val[1]), res->num - 1);
+
+	return CMD_DEC_OK;
+}
+
+ECMD_DEC_Status CMD_adf(TCMD_DEC_Results *res, EResultOut out)
+{
+	(void)out;
+
+	if (res->val[0])
+		ADF_PDM_Init();
+	else
+		ADF_PDM_DeInit();
 
 	return CMD_DEC_OK;
 }

@@ -59,3 +59,12 @@ Therefore, I use SPI3 as Slave Rx (in DMA mode): it needs wire connections for S
 
 See the marocs SPI3_DMA and QSPI_DMA defined in project properties: it illustrates what to do in order to use DMA for QSPI (Tx and Rx) as well as SPI3 Rx.
 
+## PDM MICs
+One option is to use an external TI chip (PCMD3180) and get the PDM MIC via SAI into MCU.
+Another option is to use STM32U5xx ADF for a mono MIC (PB3, PB4).
+
+## SPDIF for PDM MIC
+An SPDIF interface is configured on SAI2. It forwards the PDM MIC audio via SPDIF (to a SPDIF receiver, PC, other MCU board).
+The audio format for the PDM MICs and SPDIF is:
+48KHz, decimation 64 (3.072MHz PDM CLK), 16bit signed PCM, stereo via SPDIF
+

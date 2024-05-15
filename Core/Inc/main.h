@@ -61,7 +61,7 @@ void MX_USB_OTG_HS_PCD_Init(void);
 
 #define CMD_LINE_LEN		(6*1024)			/* length of UART command line (ASCII based) */
 
-#define VERSION_INFO		"V4.1"
+#define VERSION_INFO		"V4.2"
 #ifdef PDM_MCU
 #define VERSION_STRING		"---- PDM MCU - " VERSION_INFO " ----\r\n"
 #else

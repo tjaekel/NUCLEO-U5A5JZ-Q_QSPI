@@ -139,8 +139,8 @@ void HAL_OSPI_MspInit(OSPI_HandleTypeDef* hospi)
 
     /* 48 KHz SPDIF            with scope/debug 	CubeMX cfg      correct */
     PeriphClkInit.PLL3.PLL3N = 36;					//36;			36;
-    PeriphClkInit.PLL3.PLL3P = 24;					//96; 			24;
-    PeriphClkInit.PLL3.PLL3Q = 2;
+    PeriphClkInit.PLL3.PLL3P = 24;					//96; 			24;		//SAI2
+    PeriphClkInit.PLL3.PLL3Q = 24;											//ADF1
     PeriphClkInit.PLL3.PLL3R = 2;
     PeriphClkInit.PLL3.PLL3RGE = RCC_PLLVCIRANGE_1;
     PeriphClkInit.PLL3.PLL3FRACN = 7080;			//7080			7078; -->
