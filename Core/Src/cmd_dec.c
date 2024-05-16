@@ -138,6 +138,7 @@ ECMD_DEC_Status CMD_codecr(TCMD_DEC_Results *res, EResultOut out);
 ECMD_DEC_Status CMD_codecw(TCMD_DEC_Results *res, EResultOut out);
 
 ECMD_DEC_Status CMD_adf(TCMD_DEC_Results *res, EResultOut out);
+ECMD_DEC_Status CMD_adfg(TCMD_DEC_Results *res, EResultOut out);
 
 ECMD_DEC_Status CMD_test(TCMD_DEC_Results *res, EResultOut out);
 
@@ -253,6 +254,11 @@ const TCMD_DEC_Command Commands[] = {
 				.cmd = (const char *)"adf",
 				.help = (const char *)"stop or start ADF PDM [0|1]",
 				.func = CMD_adf
+		},
+		{
+				.cmd = (const char *)"adfg",
+				.help = (const char *)"set ADF gain <gain>",
+				.func = CMD_adfg
 		},
 
 		/* chip specific */
@@ -1291,7 +1297,7 @@ ECMD_DEC_Status CMD_memt(TCMD_DEC_Results *res, EResultOut out)
 #define SAI_BYTES_PER_SAMPLE	4		/* 24bit, for SPDIF - used as 32bit - buffer as int32_t! */
 #define SAI_AUDIO_FREQ			48		/* 48 KHz */
 #define SAI_BUFFER_SIZE			4		/* as N times 1ms samples - 1 second */
-#define SAI_DOUBLE_BUFFER		1		/* 2 for double buffering! */
+#define SAI_DOUBLE_BUFFER		2		/* 2 for double buffering! */
 ////int32_t SAIRxBuf[(SAI_CHANNELS * SAI_AUDIO_FREQ) * SAI_BUFFER_SIZE * SAI_DOUBLE_BUFFER] __aligned(4);
 int32_t SAIRxBuf[SPDIF_FRAMES * 2] __aligned(4);
 #endif
@@ -1464,12 +1470,30 @@ ECMD_DEC_Status CMD_codecw(TCMD_DEC_Results *res, EResultOut out)
 ECMD_DEC_Status CMD_adf(TCMD_DEC_Results *res, EResultOut out)
 {
 	(void)out;
+	extern void MX_SAI_Init(void);
+	extern SAI_HandleTypeDef hsai_BlockB1;
 
 	if (res->val[0])
+	{
+		MX_SAI_Init();
+		/* start SPDIF transmitter */
+		HAL_SAI_Transmit_IT(&hsai_BlockB1, (uint8_t *)SAIRxBuf, (uint16_t)(sizeof(SAIRxBuf) / sizeof(uint32_t)));
+
 		ADF_PDM_Init();
+	}
 	else
+	{
 		ADF_PDM_DeInit();
+	}
 
 	return CMD_DEC_OK;
 }
 
+ECMD_DEC_Status CMD_adfg(TCMD_DEC_Results *res, EResultOut out)
+{
+	(void)out;
+
+	ADF_SetGain(res->val[0]);
+
+	return CMD_DEC_OK;
+}

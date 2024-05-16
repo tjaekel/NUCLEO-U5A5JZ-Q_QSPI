@@ -17,12 +17,18 @@ extern DMA_HandleTypeDef handle_GPDMA1_Channel11;
 MDF_DmaConfigTypeDef         DMAConfig;
 
 /*Buffer location and size should aligned to cache line size (32 bytes) */
-int16_t        RecBuff[REC_BUFF_SIZE * 2U];		//2 * 1024 * 2 = 4096 bytes
+int16_t        RecBuff[(REC_BUFF_SIZE + 1) * 2U];		//double buffer
+/* for correct timing we need one more sample, depending on other settings */
 __IO uint32_t  DmaRecHalfBuffCplt  = 0;
 __IO uint32_t  DmaRecBuffCplt      = 0;
 uint32_t       PlaybackStarted     = 0;
 
 extern DMA_QListTypeDef MDFQueue;
+
+/* SPDIF output buffer */
+extern int32_t SAIRxBuf[192 * 2];		/* 2 channels, 32bit, with 24bit samples */
+
+int sADFState = 0;
 
 /**
 * @brief MDF MSP Initialization
@@ -36,12 +42,8 @@ void HAL_MDF_MspInit(MDF_HandleTypeDef* hmdf)
   RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
   if(IS_ADF_INSTANCE(hmdf->Instance))
   {
-  /* USER CODE BEGIN ADF1_MspInit 0 */
-
-  /* USER CODE END ADF1_MspInit 0 */
-
-  /** Initializes the peripherals clock
-  */
+    /** Initializes the peripherals clock
+     */
     PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_ADF1;
 #if 1
     PeriphClkInit.Adf1ClockSelection = RCC_ADF1CLKSOURCE_PLL3;	//RCC_ADF1CLKSOURCE_MSIK;
@@ -85,12 +87,7 @@ void HAL_MDF_MspInit(MDF_HandleTypeDef* hmdf)
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     GPIO_InitStruct.Alternate = GPIO_AF3_ADF1;
     HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-  /* USER CODE BEGIN ADF1_MspInit 1 */
-
-  /* USER CODE END ADF1_MspInit 1 */
   }
-
 }
 
 /**
@@ -103,9 +100,6 @@ void HAL_MDF_MspDeInit(MDF_HandleTypeDef* hmdf)
 {
   if(IS_ADF_INSTANCE(hmdf->Instance))
   {
-  /* USER CODE BEGIN ADF1_MspDeInit 0 */
-
-  /* USER CODE END ADF1_MspDeInit 0 */
     /* Peripheral clock disable */
     __HAL_RCC_ADF1_CLK_DISABLE();
 
@@ -114,12 +108,7 @@ void HAL_MDF_MspDeInit(MDF_HandleTypeDef* hmdf)
     PB3 (JTDO/TRACESWO)     ------> ADF1_CCK0
     */
     HAL_GPIO_DeInit(GPIOB, GPIO_PIN_4|GPIO_PIN_3);
-
-  /* USER CODE BEGIN ADF1_MspDeInit 1 */
-
-  /* USER CODE END ADF1_MspDeInit 1 */
   }
-
 }
 
 /**
@@ -129,15 +118,6 @@ void HAL_MDF_MspDeInit(MDF_HandleTypeDef* hmdf)
   */
 static void MX_ADF1_Init(void)
 {
-
-  /* USER CODE BEGIN ADF1_Init 0 */
-
-  /* USER CODE END ADF1_Init 0 */
-
-  /* USER CODE BEGIN ADF1_Init 1 */
-
-  /* USER CODE END ADF1_Init 1 */
-
   /**
     AdfHandle0 structure initialization and HAL_MDF_Init function call
   */
@@ -166,17 +146,39 @@ static void MX_ADF1_Init(void)
   AdfFilterConfig0.Delay = 0;
   AdfFilterConfig0.CicMode = MDF_ONE_FILTER_SINC4;
   AdfFilterConfig0.DecimationRatio = 64;
-  AdfFilterConfig0.Gain = 1;				//-16..+24, but 10 is already saturated!
+  AdfFilterConfig0.Gain = 5;				//-16..+24, but 10 is already saturated!
   AdfFilterConfig0.ReshapeFilter.Activation = DISABLE;
-  AdfFilterConfig0.HighPassFilter.Activation = DISABLE;
+  AdfFilterConfig0.HighPassFilter.Activation = ENABLE; 	//DISABLE;
   AdfFilterConfig0.SoundActivity.Activation = DISABLE;
   AdfFilterConfig0.AcquisitionMode = MDF_MODE_ASYNC_CONT;
   AdfFilterConfig0.FifoThreshold = MDF_FIFO_THRESHOLD_NOT_EMPTY;
   AdfFilterConfig0.DiscardSamples = 0;
-  /* USER CODE BEGIN ADF1_Init 2 */
-  /* USER CODE END ADF1_Init 2 */
-
 }
+
+void ADF_CopyToOutBuffer(int16_t *adfSamples)
+{
+	/* convert the 16bit mono ADF samples to 24bit, stereo SPDIF output buffer */
+	int32_t val;
+	int32_t *out = SAIRxBuf;
+	size_t i;
+	for (i = 0; i < REC_BUFF_SIZE; i++)
+	{
+		val = (int32_t)*adfSamples++;
+		val *= 1024;			/* 16bit to 24bit: 256 would be correct, but amplify a bit more */
+		*out++ = val;
+		*out++ = val;		/* stereo in output */
+	}
+}
+
+#if 1
+void ADF_GetToOutBuffer(void)
+{
+	if (DmaRecBuffCplt)
+		ADF_CopyToOutBuffer(&RecBuff[REC_BUFF_SIZE]);
+	else
+		ADF_CopyToOutBuffer(&RecBuff[0]);
+}
+#endif
 
 /* USER CODE BEGIN 4 */
 /**
@@ -188,7 +190,8 @@ static void MDF_DMAConfig(void)
 {
   /* Initialize DMA configuration parameters */
   DMAConfig.Address                              = (uint32_t)&RecBuff[0];
-  DMAConfig.DataLength                           = (REC_BUFF_SIZE * 4U);		//4096 bytes
+  DMAConfig.DataLength                           = ((REC_BUFF_SIZE + 0) * 2U * 2U);
+  /* sometimes we need one additional sample for correct timing, depending on other settings */
   DMAConfig.MsbOnly                              = ENABLE;
 }
 
@@ -197,13 +200,7 @@ static void MDF_DMAConfig(void)
   */
 void GPDMA1_Channel11_IRQHandler(void)
 {
-  /* USER CODE BEGIN GPDMA1_Channel11_IRQn 0 */
-
-  /* USER CODE END GPDMA1_Channel11_IRQn 0 */
   HAL_DMA_IRQHandler(&handle_GPDMA1_Channel11);
-  /* USER CODE BEGIN GPDMA1_Channel11_IRQn 1 */
-
-  /* USER CODE END GPDMA1_Channel11_IRQn 1 */
 }
 
 /**
@@ -215,6 +212,12 @@ void HAL_MDF_AcqHalfCpltCallback(MDF_HandleTypeDef *hmdf)
 {
 	(void)hmdf;
     DmaRecHalfBuffCplt = 1;
+    DmaRecBuffCplt = 0;
+
+    HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_8);
+#if 0
+    ADF_CopyToOutBuffer(&RecBuff[0]);
+#endif
 }
 
 /**
@@ -227,7 +230,18 @@ void HAL_MDF_AcqHalfCpltCallback(MDF_HandleTypeDef *hmdf)
 void HAL_MDF_AcqCpltCallback(MDF_HandleTypeDef *hmdf)
 {
 	(void)hmdf;
+	DmaRecHalfBuffCplt = 0;
     DmaRecBuffCplt = 1;
+
+    HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_8);
+#if 0
+    ADF_CopyToOutBuffer(&RecBuff[REC_BUFF_SIZE]);
+#endif
+}
+
+int ADF_GetADFState(void)
+{
+	return sADFState;
 }
 
 /* ------------------------------------------------------- */
@@ -245,9 +259,27 @@ void ADF_PDM_Init(void)
 	{
 	    Error_Handler();
 	}
+	sADFState = 1;
 }
 
 void ADF_PDM_DeInit(void)
 {
-	HAL_MDF_MspDeInit(&AdfHandle0);
+	sADFState = 0;
+	HAL_MDF_DeInit(&AdfHandle0);
+	HAL_DMAEx_List_DeInit(&handle_GPDMA1_Channel11);
+	handle_GPDMA1_Channel11.State = HAL_DMA_STATE_READY;
+}
+
+void ADF_SetGain(unsigned long gain)
+{
+	int32_t Gain;
+	if (gain > 0x100)
+		Gain = (int32_t)(gain & 0xFF) * -1;
+	else
+	{
+		Gain = (int32_t)gain;
+		if (Gain > 8)
+			Gain = 8;				/* larger fails! */
+	}
+	HAL_MDF_SetGain(&AdfHandle0, Gain);
 }

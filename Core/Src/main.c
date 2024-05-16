@@ -28,6 +28,8 @@
 #include "linked_list.h"
 #include "PSRAM.h"
 
+#include "ADF_PDM.h"
+
 /** TODO
  * a) UART1 on 1V8 does not work: even with OpenDrain it fails
  * b) if UART1 has received anything (and echoed back) - the VCP UART hangs!
@@ -58,11 +60,11 @@ DMA_HandleTypeDef handle_GPDMA1_Channel12;		//QSPI DMA
 #endif
 DMA_NodeTypeDef Node_GPDMA1_Channel4;
 DMA_QListTypeDef List_GPDMA1_Channel4;
-DMA_HandleTypeDef handle_GPDMA1_Channel4;		//SAI CODEC DMA
+DMA_HandleTypeDef handle_GPDMA1_Channel4;		//SAI1 CODEC DMA input
 
 DMA_NodeTypeDef Node_GPDMA1_Channel5;
 DMA_QListTypeDef List_GPDMA1_Channel5;
-DMA_HandleTypeDef handle_GPDMA1_Channel5;
+DMA_HandleTypeDef handle_GPDMA1_Channel5;		//SAI2 SPDIF DMA output
 
 #ifndef STM32U5A5xx
 PCD_HandleTypeDef hpcd_USB_OTG_FS;
@@ -1202,7 +1204,8 @@ void MX_SAI_Init(void)
   hsai_BlockB1.Init.Synchro = SAI_ASYNCHRONOUS;
   hsai_BlockB1.Init.OutputDrive = SAI_OUTPUTDRIVE_ENABLE;
   hsai_BlockB1.Init.NoDivider = SAI_MASTERDIVIDER_DISABLE;
-  hsai_BlockB1.Init.FIFOThreshold = SAI_FIFOTHRESHOLD_EMPTY;
+  hsai_BlockB1.Init.FIFOThreshold = SAI_FIFOTHRESHOLD_1QF;	//SAI_FIFOTHRESHOLD_EMPTY;
+  /* give the INT restart a bit time! */
   hsai_BlockB1.Init.AudioFrequency = SAI_AUDIO_FREQUENCY_48K;
   hsai_BlockB1.Init.DataSize = SAI_DATASIZE_32;			//should not be necessary
   hsai_BlockB1.Init.SynchroExt = SAI_SYNCEXT_DISABLE;
@@ -1491,6 +1494,8 @@ void HAL_SAI_TxCpltCallback(SAI_HandleTypeDef *hsai)
 	  HAL_SAI_Transmit_IT(&hsai_BlockB1, (uint8_t *)SPDIF_out_test, (uint16_t)(sizeof(SPDIF_out_test) / sizeof(uint32_t)));
 #else
 	  ////ModifySPDIFOut();
+	  if (ADF_GetADFState())
+		  ADF_GetToOutBuffer();			/* stay in sync with the ADF DMA */
 	  HAL_SAI_Transmit_IT(&hsai_BlockB1, (uint8_t *)SAIRxBuf, (uint16_t)(sizeof(SAIRxBuf) / sizeof(uint32_t)));
 #endif
   }
