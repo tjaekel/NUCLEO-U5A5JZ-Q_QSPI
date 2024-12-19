@@ -1,0 +1,16 @@
+../Middlewares/ST/STM32_USBPD_Library/Devices/STM32U5XX/src/usbpd_phy_hw_if.c:84:6:USBPD_HW_IF_GlobalHwInit	9
+../Middlewares/ST/STM32_USBPD_Library/Devices/STM32U5XX/src/usbpd_phy_hw_if.c:206:6:USBPDM1_AssertRp	22
+../Middlewares/ST/STM32_USBPD_Library/Devices/STM32U5XX/src/usbpd_phy_hw_if.c:285:6:USBPDM1_DeAssertRp	1
+../Middlewares/ST/STM32_USBPD_Library/Devices/STM32U5XX/src/usbpd_phy_hw_if.c:291:6:USBPDM1_AssertRd	3
+../Middlewares/ST/STM32_USBPD_Library/Devices/STM32U5XX/src/usbpd_phy_hw_if.c:320:6:USBPDM1_DeAssertRd	1
+../Middlewares/ST/STM32_USBPD_Library/Devices/STM32U5XX/src/usbpd_phy_hw_if.c:326:6:USBPDM1_EnterErrorRecovery	1
+../Middlewares/ST/STM32_USBPD_Library/Devices/STM32U5XX/src/usbpd_phy_hw_if.c:341:6:USBPDM1_Set_CC	2
+../Middlewares/ST/STM32_USBPD_Library/Devices/STM32U5XX/src/usbpd_phy_hw_if.c:348:6:USBPDM1_RX_EnableInterrupt	1
+../Middlewares/ST/STM32_USBPD_Library/Devices/STM32U5XX/src/usbpd_phy_hw_if.c:357:6:USBPD_HW_IF_EnableRX	1
+../Middlewares/ST/STM32_USBPD_Library/Devices/STM32U5XX/src/usbpd_phy_hw_if.c:362:6:USBPD_HW_IF_DisableRX	1
+../Middlewares/ST/STM32_USBPD_Library/Devices/STM32U5XX/src/usbpd_phy_hw_if.c:367:6:HW_SignalAttachement	1
+../Middlewares/ST/STM32_USBPD_Library/Devices/STM32U5XX/src/usbpd_phy_hw_if.c:442:6:HW_SignalDetachment	1
+../Middlewares/ST/STM32_USBPD_Library/Devices/STM32U5XX/src/usbpd_phy_hw_if.c:492:6:USBPD_HW_IF_SetResistor_SinkTxNG	9
+../Middlewares/ST/STM32_USBPD_Library/Devices/STM32U5XX/src/usbpd_phy_hw_if.c:521:6:USBPD_HW_IF_SetResistor_SinkTxOK	9
+../Middlewares/ST/STM32_USBPD_Library/Devices/STM32U5XX/src/usbpd_phy_hw_if.c:550:9:USBPD_HW_IF_IsResistor_SinkTxOk	5
+../Middlewares/ST/STM32_USBPD_Library/Devices/STM32U5XX/src/usbpd_phy_hw_if.c:573:6:USBPD_HW_IF_FastRoleSwapSignalling	1

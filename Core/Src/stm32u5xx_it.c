@@ -245,6 +245,7 @@ void OCTOSPI1_IRQHandler(void)
 }
 #endif
 
+#ifdef CODEC_AVAIL
 /**
   * @brief This function handles Serial Audio Interface 1 global interrupt.
   */
@@ -261,4 +262,5 @@ void SAI2_IRQHandler(void)
 {
   HAL_SAI_IRQHandler(&hsai_BlockB1);
 }
+#endif
 

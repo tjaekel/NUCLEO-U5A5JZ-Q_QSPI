@@ -1,0 +1,4 @@
+../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_ll_lpgpio.h:195:22:LL_LPGPIO_SetPinMode	4	static,ignoring_inline_asm
+../Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_lpgpio.c:73:13:LL_LPGPIO_DeInit	0	static
+../Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_lpgpio.c:103:13:LL_LPGPIO_Init	16	static,ignoring_inline_asm
+../Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_lpgpio.c:140:6:LL_LPGPIO_StructInit	0	static

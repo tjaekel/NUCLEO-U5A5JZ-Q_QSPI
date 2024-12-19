@@ -1,0 +1,3 @@
+../Core/Src/syserr.c:15:6:SYS_SetError	1
+../Core/Src/syserr.c:20:22:SYS_GetError	1
+../Core/Src/syserr.c:25:6:SYS_ClrError	1

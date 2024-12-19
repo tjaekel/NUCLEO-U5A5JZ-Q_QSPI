@@ -1,0 +1,7 @@
+../Core/Src/SYS_config.c:37:6:CFG_Read	16	static
+../Core/Src/SYS_config.c:48:6:CFG_Write	8	static
+../Core/Src/SYS_config.c:53:6:CFG_Default	8	static
+../Core/Src/SYS_config.c:61:6:CFG_Set	0	static
+../Core/Src/SYS_config.c:74:6:CFG_Print	16	static
+../Core/Src/SYS_config.c:93:6:CFG_Print_hex	32	static
+../Core/Src/SYS_config.c:105:6:SYSINFO_print	32	static

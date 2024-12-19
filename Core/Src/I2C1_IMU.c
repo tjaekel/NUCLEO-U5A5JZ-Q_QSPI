@@ -7,6 +7,7 @@
 
 #ifndef NUCLEO_BOARD
 
+#ifdef IMU_AVAIL
 #include "I2C1_IMU.h"
 
 int IMU_Read(unsigned long addr, unsigned char *data, size_t bytes)
@@ -30,6 +31,7 @@ int IMU_Write(unsigned long addr, unsigned char *data, size_t bytes)
 
 	return 1;	//ERROR
 }
+#endif
 
 #endif
 

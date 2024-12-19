@@ -1,0 +1,10 @@
+../Middlewares/ST/STM32_USBPD_Library/Devices/STM32U5XX/src/usbpd_cad_hw_if.c:1140:6:CAD_Check_HW_SNK	4
+../Middlewares/ST/STM32_USBPD_Library/Devices/STM32U5XX/src/usbpd_cad_hw_if.c:1263:17:ManageStateDetached_SNK	3
+../Middlewares/ST/STM32_USBPD_Library/Devices/STM32U5XX/src/usbpd_cad_hw_if.c:1639:17:ManageStateAttachedWait_SNK	6
+../Middlewares/ST/STM32_USBPD_Library/Devices/STM32U5XX/src/usbpd_cad_hw_if.c:1689:17:ManageStateAttached_SNK	4
+../Middlewares/ST/STM32_USBPD_Library/Devices/STM32U5XX/src/usbpd_cad_hw_if.c:431:10:CAD_StateMachine_SNK	4
+../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_ll_gpio.h:283:22:LL_GPIO_SetPinMode	3
+../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_ll_gpio.h:494:22:LL_GPIO_SetPinPull	3
+../Middlewares/ST/STM32_USBPD_Library/Devices/STM32U5XX/src/usbpd_cad_hw_if.c:242:6:CAD_Init	1
+../Middlewares/ST/STM32_USBPD_Library/Devices/STM32U5XX/src/usbpd_cad_hw_if.c:386:6:CAD_Enter_ErrorRecovery	1
+../Middlewares/ST/STM32_USBPD_Library/Devices/STM32U5XX/src/usbpd_cad_hw_if.c:1063:10:CAD_StateMachine	2

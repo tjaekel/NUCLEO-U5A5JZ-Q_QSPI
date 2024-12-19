@@ -1,0 +1,6 @@
+../Core/Src/MEM_Pool.c:20:6:MEM_PoolInit	0	static
+../Core/Src/MEM_Pool.c:44:7:MEM_PoolAlloc	8	static
+../Core/Src/MEM_Pool.c:150:6:MEM_PoolFree	8	static
+../Core/Src/MEM_Pool.c:194:21:MEM_PoolWatermark	0	static
+../Core/Src/MEM_Pool.c:199:21:MEM_PoolMax	0	static
+../Core/Src/MEM_Pool.c:204:14:MEM_PoolAvailable	0	static

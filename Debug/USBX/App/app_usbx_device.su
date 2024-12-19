@@ -1,0 +1,4 @@
+../USBX/App/app_usbx_device.c:81:6:MX_USBX_Device_Init	80	static
+../USBX/App/app_usbx_device.c:303:6:USBX_APP_Device_Init	8	static
+../USBX/App/app_usbx_device.c:251:13:app_ux_device_thread_entry	8	static
+../USBX/App/app_usbx_device.c:340:6:USBX_APP_UART_Init	8	static

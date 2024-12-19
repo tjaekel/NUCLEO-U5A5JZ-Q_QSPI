@@ -1,0 +1,2 @@
+../USBPD/App/usbpd.c:36:14:USBPD_PreInitOs	8	static
+../USBPD/App/usbpd.c:48:14:MX_USBPD_Init	8	static

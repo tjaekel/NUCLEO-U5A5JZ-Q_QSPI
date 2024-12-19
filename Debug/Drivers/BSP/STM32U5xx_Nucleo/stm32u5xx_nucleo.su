@@ -1,0 +1,15 @@
+../Drivers/BSP/STM32U5xx_Nucleo/stm32u5xx_nucleo.c:127:9:BSP_GetVersion	0	static
+../Drivers/BSP/STM32U5xx_Nucleo/stm32u5xx_nucleo.c:136:16:BSP_GetBoardName	0	static
+../Drivers/BSP/STM32U5xx_Nucleo/stm32u5xx_nucleo.c:145:16:BSP_GetBoardID	0	static
+../Drivers/BSP/STM32U5xx_Nucleo/stm32u5xx_nucleo.c:159:9:BSP_LED_Init	56	static
+../Drivers/BSP/STM32U5xx_Nucleo/stm32u5xx_nucleo.c:228:9:BSP_LED_DeInit	40	static
+../Drivers/BSP/STM32U5xx_Nucleo/stm32u5xx_nucleo.c:262:9:BSP_LED_On	8	static
+../Drivers/BSP/STM32U5xx_Nucleo/stm32u5xx_nucleo.c:291:9:BSP_LED_Off	8	static
+../Drivers/BSP/STM32U5xx_Nucleo/stm32u5xx_nucleo.c:320:9:BSP_LED_Toggle	8	static
+../Drivers/BSP/STM32U5xx_Nucleo/stm32u5xx_nucleo.c:349:9:BSP_LED_GetState	8	static
+../Drivers/BSP/STM32U5xx_Nucleo/stm32u5xx_nucleo.c:380:9:BSP_PB_Init	32	static
+../Drivers/BSP/STM32U5xx_Nucleo/stm32u5xx_nucleo.c:425:9:BSP_PB_DeInit	32	static
+../Drivers/BSP/STM32U5xx_Nucleo/stm32u5xx_nucleo.c:443:9:BSP_PB_GetState	8	static
+../Drivers/BSP/STM32U5xx_Nucleo/stm32u5xx_nucleo.c:453:6:BSP_PB_IRQHandler	8	static
+../Drivers/BSP/STM32U5xx_Nucleo/stm32u5xx_nucleo.c:463:13:BSP_PB_Callback	0	static
+../Drivers/BSP/STM32U5xx_Nucleo/stm32u5xx_nucleo.c:685:13:BUTTON_USER_EXTI_Callback	8	static

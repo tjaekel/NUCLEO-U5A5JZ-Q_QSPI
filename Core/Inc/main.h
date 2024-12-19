@@ -51,7 +51,7 @@ void MX_USB_OTG_FS_PCD_Init(void);
 void MX_USB_OTG_HS_PCD_Init(void);
 #endif
 
-#ifdef NUCLE_BOARD
+#ifdef NUCLEO_BOARD
 #define LED_RED_Pin GPIO_PIN_2
 #define LED_RED_GPIO_Port GPIOG
 #else
@@ -61,7 +61,7 @@ void MX_USB_OTG_HS_PCD_Init(void);
 
 #define CMD_LINE_LEN		(6*1024)			/* length of UART command line (ASCII based) */
 
-#define VERSION_INFO		"V4.2"
+#define VERSION_INFO		"V5.1"
 #ifdef PDM_MCU
 #define VERSION_STRING		"---- PDM MCU - " VERSION_INFO " ----\r\n"
 #else

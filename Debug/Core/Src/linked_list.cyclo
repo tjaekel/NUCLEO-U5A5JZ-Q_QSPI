@@ -1,0 +1,3 @@
+../Core/Src/linked_list.c:58:19:MX_Queue_tx_Config	1
+../Core/Src/linked_list.c:98:19:MX_Queue_rx_Config	1
+../Core/Src/linked_list.c:138:19:MX_MDFQueue_Config	1

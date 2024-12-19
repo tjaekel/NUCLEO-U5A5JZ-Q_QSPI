@@ -1,0 +1,8 @@
+../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_ll_gpio.h:283:22:LL_GPIO_SetPinMode	3
+../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_ll_gpio.h:423:22:LL_GPIO_SetPinSpeed	3
+../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_ll_gpio.h:494:22:LL_GPIO_SetPinPull	3
+../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_ll_gpio.h:566:22:LL_GPIO_SetAFPin_0_7	3
+../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_ll_gpio.h:643:22:LL_GPIO_SetAFPin_8_15	3
+../Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_gpio.c:104:13:LL_GPIO_DeInit	11
+../Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_gpio.c:193:13:LL_GPIO_Init	8
+../Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_gpio.c:265:6:LL_GPIO_StructInit	1

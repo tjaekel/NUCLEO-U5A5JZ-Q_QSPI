@@ -14,13 +14,19 @@
 #include "SYS_config.h"
 #include "QSPI.h"
 #include "temp_sensor.h"
-#ifndef NUCLEO_BOARD
+#if !defined(NUCLEO_BOARD) || defined(LEVEL_SHIFT)
 #include "i2c3_flash.h"
+#ifdef IMU_AVAIL
 #include "i2c1_IMU.h"
 #endif
+#endif
+#ifdef CODEC_AVAIL
 #include "SPI1_CODEC.h"
+#endif
 
+#ifdef ADF_AVAL
 #include "ADF_PDM.h"
+#endif
 
 #include "app_azure_rtos.h"		/* for delay */
 
@@ -119,11 +125,13 @@ ECMD_DEC_Status CMD_dumpm(TCMD_DEC_Results *res, EResultOut out);
 ECMD_DEC_Status CMD_memw(TCMD_DEC_Results *res, EResultOut out);
 ECMD_DEC_Status CMD_memt(TCMD_DEC_Results *res, EResultOut out);
 ECMD_DEC_Status CMD_fwreset(TCMD_DEC_Results *res, EResultOut out);
-#ifndef NUCLEO_BOARD
+#if !defined(NUCLEO_BOARD) || defined(LEVEL_SHIFT)
 ECMD_DEC_Status CMD_flashr(TCMD_DEC_Results *res, EResultOut out);
 ECMD_DEC_Status CMD_flashw(TCMD_DEC_Results *res, EResultOut out);
+#ifdef IMU_AVAIL
 ECMD_DEC_Status CMD_imur(TCMD_DEC_Results *res, EResultOut out);
 ECMD_DEC_Status CMD_imuw(TCMD_DEC_Results *res, EResultOut out);
+#endif
 #endif
 
 ECMD_DEC_Status CMD_qspi(TCMD_DEC_Results *res, EResultOut out);
@@ -133,12 +141,15 @@ ECMD_DEC_Status CMD_qspideinit(TCMD_DEC_Results *res, EResultOut out);
 ECMD_DEC_Status CMD_qspiclk(TCMD_DEC_Results *res, EResultOut out);
 ECMD_DEC_Status CMD_cid(TCMD_DEC_Results *res, EResultOut out);
 
+#ifdef CODEC_AVAIL
 ECMD_DEC_Status CMD_codece(TCMD_DEC_Results *res, EResultOut out);
 ECMD_DEC_Status CMD_codecr(TCMD_DEC_Results *res, EResultOut out);
 ECMD_DEC_Status CMD_codecw(TCMD_DEC_Results *res, EResultOut out);
+#endif
 
+#ifdef ADF_AVAIL
 ECMD_DEC_Status CMD_adf(TCMD_DEC_Results *res, EResultOut out);
-ECMD_DEC_Status CMD_adfg(TCMD_DEC_Results *res, EResultOut out);
+#endif
 
 ECMD_DEC_Status CMD_test(TCMD_DEC_Results *res, EResultOut out);
 
@@ -155,7 +166,7 @@ const TCMD_DEC_Command Commands[] = {
 		},
 		{
 				.cmd = (const char *)"syscfg",
-				.help = (const char *)"show system config [-D], [-d] set defaults",
+				.help = (const char *)"show system config [-D], [-d] set defaults, [-w] write",
 				.func = CMD_syscfg
 		},
 		{
@@ -190,7 +201,7 @@ const TCMD_DEC_Command Commands[] = {
 		},
 		{
 				.cmd = (const char *)"led",
-				.help = (const char *)"led off, on1, on2 [0..3]",
+				.help = (const char *)"led off | on1 | on2 | on3 [0..3]",
 				.func = CMD_led
 		},
 		{
@@ -213,7 +224,7 @@ const TCMD_DEC_Command Commands[] = {
 				.help = (const char *)"reset MCU",
 				.func = CMD_fwreset
 		},
-#ifndef NUCLEO_BOARD
+#if !defined(NUCLEO_BOARD) || defined(LEVEL_SHIFT)
 		{
 				.cmd = (const char *)"flashr",
 				.help = (const char *)"read flash <addr> <numbytes>",
@@ -224,6 +235,7 @@ const TCMD_DEC_Command Commands[] = {
 				.help = (const char *)"write flash <addr> <byte> ...",
 				.func = CMD_flashw
 		},
+#ifdef IMU_AVAIL
 		{
 				.cmd = (const char *)"imur",
 				.help = (const char *)"read IMU <addr> <numbytes>",
@@ -235,6 +247,8 @@ const TCMD_DEC_Command Commands[] = {
 				.func = CMD_imuw
 		},
 #endif
+#endif
+#ifdef CODEC_AVAIL
 		{
 				.cmd = (const char *)"codece",
 				.help = (const char *)"enable SPI and CODEC",
@@ -250,16 +264,14 @@ const TCMD_DEC_Command Commands[] = {
 				.help = (const char *)"write CODEC registers <addr> <byte> ...",
 				.func = CMD_codecw
 		},
+#endif
+#ifdef ADF_AVAIL
 		{
 				.cmd = (const char *)"adf",
 				.help = (const char *)"stop or start ADF PDM [0|1]",
 				.func = CMD_adf
 		},
-		{
-				.cmd = (const char *)"adfg",
-				.help = (const char *)"set ADF gain <gain>",
-				.func = CMD_adfg
-		},
+#endif
 
 		/* chip specific */
 		{
@@ -274,7 +286,7 @@ const TCMD_DEC_Command Commands[] = {
 		},
 		{
 				.cmd = (const char *)"sqspi",
-				.help = (const char *)"sqspi [0|1..3] get or select active QSPI NCSs",
+				.help = (const char *)"sqspi [0|1,2,4,8] get or select active QSPI NCSs",
 				.func = CMD_sqspi
 		},
 		{
@@ -737,7 +749,12 @@ ECMD_DEC_Status CMD_syscfg(TCMD_DEC_Results *res, EResultOut out)
 		else
 		if (strncmp(res->opt, "-D", 2) == 0)
 		{
-				CFG_Print_hex(out);
+			CFG_Print_hex(out);
+		}
+		else
+		if (strncmp(res->opt, "-w", 2) == 0)
+		{
+			CFG_Write();
 		}
 	}
 	else
@@ -1091,7 +1108,7 @@ ECMD_DEC_Status CMD_led(TCMD_DEC_Results *res, EResultOut out)
 	return CMD_DEC_OK;
 }
 
-#ifndef NUCLEO_BOARD
+#if !defined(NUCLEO_BOARD) || defined(LEVEL_SHIFT)
 ECMD_DEC_Status CMD_flashr(TCMD_DEC_Results *res, EResultOut out)
 {
 	unsigned char *b;
@@ -1141,6 +1158,7 @@ ECMD_DEC_Status CMD_flashw(TCMD_DEC_Results *res, EResultOut out)
 	return CMD_DEC_OK;
 }
 
+#ifdef IMU_AVAIL
 ECMD_DEC_Status CMD_imur(TCMD_DEC_Results *res, EResultOut out)
 {
 	unsigned char *b;
@@ -1191,6 +1209,7 @@ ECMD_DEC_Status CMD_imuw(TCMD_DEC_Results *res, EResultOut out)
 	MEM_PoolFree(b);
 	return CMD_DEC_OK;
 }
+#endif
 #endif
 
 ECMD_DEC_Status CMD_rawspi(TCMD_DEC_Results *res, EResultOut out)
@@ -1353,6 +1372,7 @@ void GenerateSPDIFOut(void)
 }
 #endif
 
+#ifdef CODEC_AVAIL
 ECMD_DEC_Status CMD_codece(TCMD_DEC_Results *res, EResultOut out)
 {
 	(void)res;
@@ -1466,7 +1486,9 @@ ECMD_DEC_Status CMD_codecw(TCMD_DEC_Results *res, EResultOut out)
 
 	return CMD_DEC_OK;
 }
+#endif
 
+#ifdef ADF_AVAIL
 ECMD_DEC_Status CMD_adf(TCMD_DEC_Results *res, EResultOut out)
 {
 	(void)out;
@@ -1488,12 +1510,4 @@ ECMD_DEC_Status CMD_adf(TCMD_DEC_Results *res, EResultOut out)
 
 	return CMD_DEC_OK;
 }
-
-ECMD_DEC_Status CMD_adfg(TCMD_DEC_Results *res, EResultOut out)
-{
-	(void)out;
-
-	ADF_SetGain(res->val[0]);
-
-	return CMD_DEC_OK;
-}
+#endif

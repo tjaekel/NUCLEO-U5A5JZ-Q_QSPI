@@ -28,8 +28,6 @@
 #include "linked_list.h"
 #include "PSRAM.h"
 
-#include "ADF_PDM.h"
-
 /** TODO
  * a) UART1 on 1V8 does not work: even with OpenDrain it fails
  * b) if UART1 has received anything (and echoed back) - the VCP UART hangs!
@@ -60,11 +58,11 @@ DMA_HandleTypeDef handle_GPDMA1_Channel12;		//QSPI DMA
 #endif
 DMA_NodeTypeDef Node_GPDMA1_Channel4;
 DMA_QListTypeDef List_GPDMA1_Channel4;
-DMA_HandleTypeDef handle_GPDMA1_Channel4;		//SAI1 CODEC DMA input
+DMA_HandleTypeDef handle_GPDMA1_Channel4;		//SAI CODEC DMA
 
 DMA_NodeTypeDef Node_GPDMA1_Channel5;
 DMA_QListTypeDef List_GPDMA1_Channel5;
-DMA_HandleTypeDef handle_GPDMA1_Channel5;		//SAI2 SPDIF DMA output
+DMA_HandleTypeDef handle_GPDMA1_Channel5;
 
 #ifndef STM32U5A5xx
 PCD_HandleTypeDef hpcd_USB_OTG_FS;
@@ -95,6 +93,10 @@ I2C_HandleTypeDef hi2c1;
 static void MX_I2C3_Init(void);
 static void MX_I2C1_Init(void);
 #endif
+#ifdef LEVEL_SHIFT
+I2C_HandleTypeDef hi2c2;
+static void MX_I2C2_Init(void);
+#endif
 void MX_SAI1_Init(void);
 
 /**
@@ -107,8 +109,6 @@ int main(void)
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   HAL_Init();
-
-  CFG_Read();
 
   /* Configure the system clock */
   SystemClock_Config();
@@ -129,7 +129,13 @@ int main(void)
 #ifndef NUCLEO_BOARD
   MX_I2C3_Init();
   MX_I2C1_Init();
+#else
+#ifdef LEVEL_SHIFT
+  MX_I2C2_Init();
 #endif
+#endif
+
+  CFG_Read();
 
   MX_GPIO_Init();
 
@@ -145,7 +151,9 @@ int main(void)
   MX_OCTOSPI1_Init();
 
 #ifdef PDM_MCU
+#ifdef PSRAM_AVAIL
   PSRAM_Init();
+#endif
 #endif
 
   ////MX_SPI1_Init();	/* we do it later, after USB is up - via command */
@@ -352,7 +360,8 @@ static void SystemPower_Config(void)
 
   LL_SYSCFG_EnableVddCompensationCell();
 
-  ////HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1);
+  //XXXX
+  HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1);
 
   /*
    * PVD Configuration
@@ -484,6 +493,7 @@ static void MX_GPDMA1_Init(void)
     }
 #endif
 
+#ifdef ADF_AVAIL
     extern MDF_HandleTypeDef AdfHandle0;
     /* Channel11 DAM for ADF */
     handle_GPDMA1_Channel11.Instance = GPDMA1_Channel11;
@@ -504,6 +514,7 @@ static void MX_GPDMA1_Init(void)
 
     HAL_NVIC_SetPriority(GPDMA1_Channel11_IRQn, 0, 0);
     HAL_NVIC_EnableIRQ(GPDMA1_Channel11_IRQn);
+#endif
 
 #ifdef QSPI_DMA
     /* QSPI DMA */
@@ -619,7 +630,8 @@ void MX_OCTOSPI1_Init(void)
   sOspiManagerCfg.ClkPort = 1;
   sOspiManagerCfg.NCSPort = 1;
   sOspiManagerCfg.IOLowPort = HAL_OSPIM_IOPORT_1_LOW;
-  sOspiManagerCfg.DQSPort = 1;		//DQS does not work in SDR mode!
+  //sOspiManagerCfg.DQSPort = 1;		//DQS does not work in SDR mode!
+  sOspiManagerCfg.DQSPort = 0;
   if (HAL_OSPIM_Config(&hospi1, &sOspiManagerCfg, HAL_OSPI_TIMEOUT_DEFAULT_VALUE) != HAL_OK)
   {
     Error_Handler();
@@ -846,28 +858,27 @@ static void MX_GPIO_Init(void)
 
 #ifdef NUCLEO_BOARD
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(LED_RED_GPIO_Port, LED_RED_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(LED1_GPIO_PORT, LED1_PIN, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(LED2_GPIO_PORT, LED2_PIN, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(LED3_GPIO_PORT, LED3_PIN, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : LED_RED_Pin */
-  GPIO_InitStruct.Pin = LED_RED_Pin;
+  GPIO_InitStruct.Pin = LED3_PIN;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(LED_RED_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(LED3_GPIO_PORT, &GPIO_InitStruct);
 
   /* -1- Enable GPIO Clock (to be able to program the configuration registers) */
   //LED1_GPIO_CLK_ENABLE();
   //LED2_GPIO_CLK_ENABLE();
 
-  /* -2- Configure IO in output push-pull mode to drive external LEDs */
-  GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull  = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-
   GPIO_InitStruct.Pin = LED1_PIN;
   HAL_GPIO_Init(LED1_GPIO_PORT, &GPIO_InitStruct);
   GPIO_InitStruct.Pin = LED2_PIN;
   HAL_GPIO_Init(LED2_GPIO_PORT, &GPIO_InitStruct);
+  GPIO_InitStruct.Pin = LED3_PIN;
+  HAL_GPIO_Init(LED3_GPIO_PORT, &GPIO_InitStruct);
 #else
 
 #if 1
@@ -875,8 +886,10 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
 #endif
 
+#if 0
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5|GPIO_PIN_8, GPIO_PIN_RESET);
+#endif
 
   //WHY ?????
   /*Configure GPIO pin Output Level */
@@ -891,26 +904,21 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 #endif
 
-  /*Configure GPIO pins : PA0 PA2 */
+  /*Configure GPIO pins : PA0 PA2 - INT0, INT1 */
   GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_2;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : PA1 */
-  GPIO_InitStruct.Pin = GPIO_PIN_1;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-  GPIO_InitStruct.Alternate = GPIO_AF10_OCTOSPI1;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
+#if 0
   /*Configure GPIO pins : PA5 - test pin */
   GPIO_InitStruct.Pin = GPIO_PIN_5;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+#endif
+
   /* test pin */
   GPIO_InitStruct.Pin = GPIO_PIN_8;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
@@ -918,6 +926,7 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
+#if 0
   /*Configure GPIO pins : PB15 PB7 PB8 */
   //WHY???
   ////GPIO_InitStruct.Pin = GPIO_PIN_15|GPIO_PIN_7|GPIO_PIN_8;
@@ -925,6 +934,7 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+#endif
 
 #ifdef WHY
   /*Configure GPIO pin : PB6 */
@@ -935,17 +945,10 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 #endif
 
-#ifdef XXXX
-  //TEST
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
-  GPIO_InitStruct.Pin = GPIO_PIN_4;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-#endif
+  //PA1 = QSPI_CS2, PA4 = QSPI_CS0
+  //done in QSPI init
 
-#if 1
+#ifdef CODEC_AVAIL
   /* PB15 is CODEC SHDNZ - release the CODEC */
   /** something wrong: if we do - USB is dead, voltage 1V8 is too low... */
   /* USB fails if this is high at start ! */
@@ -1127,7 +1130,55 @@ static void MX_I2C3_Init(void)
     Error_Handler();
   }
 }
+#endif
 
+#ifdef LEVEL_SHIFT
+/**
+  * @brief I2C2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_I2C2_Init(void)
+{
+  /* used for I2C flash */
+  hi2c2.Instance = I2C2;
+  hi2c2.Init.Timing = 0x00C01F67;			//800 KHz
+  hi2c2.Init.OwnAddress1 = 0xA0;			//we are not slave, any should be fine
+  hi2c2.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+  hi2c2.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+  hi2c2.Init.OwnAddress2 = 0;
+  hi2c2.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
+  hi2c2.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+  hi2c2.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+  if (HAL_I2C_Init(&hi2c2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure Analogue filter
+  */
+  if (HAL_I2CEx_ConfigAnalogFilter(&hi2c2, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure Digital filter
+  */
+  if (HAL_I2CEx_ConfigDigitalFilter(&hi2c2, 0) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** I2C Fast mode Plus enable
+  */
+  if (HAL_I2CEx_ConfigFastModePlus(&hi2c2, I2C_FASTMODEPLUS_ENABLE) != HAL_OK)
+  {
+    Error_Handler();
+  }
+}
+#endif
+
+#ifndef NUCLEO_BOARD
 /* IMU Sensor */
 static void MX_I2C1_Init(void)
 {
@@ -1204,8 +1255,7 @@ void MX_SAI_Init(void)
   hsai_BlockB1.Init.Synchro = SAI_ASYNCHRONOUS;
   hsai_BlockB1.Init.OutputDrive = SAI_OUTPUTDRIVE_ENABLE;
   hsai_BlockB1.Init.NoDivider = SAI_MASTERDIVIDER_DISABLE;
-  hsai_BlockB1.Init.FIFOThreshold = SAI_FIFOTHRESHOLD_1QF;	//SAI_FIFOTHRESHOLD_EMPTY;
-  /* give the INT restart a bit time! */
+  hsai_BlockB1.Init.FIFOThreshold = SAI_FIFOTHRESHOLD_EMPTY;
   hsai_BlockB1.Init.AudioFrequency = SAI_AUDIO_FREQUENCY_48K;
   hsai_BlockB1.Init.DataSize = SAI_DATASIZE_32;			//should not be necessary
   hsai_BlockB1.Init.SynchroExt = SAI_SYNCEXT_DISABLE;
@@ -1243,8 +1293,10 @@ void MX_SAI_Init(void)
 #endif
 }
 
+#ifndef NUCLEO_BOARD
 void LED_Toggle(int dly)
 {
+
 	static int delayCnt = 0;
 
 	if (dly)
@@ -1253,23 +1305,37 @@ void LED_Toggle(int dly)
 			return;
 	}
 
-#ifdef NUCLEO_BOARD
-    HAL_GPIO_TogglePin(LED1_GPIO_PORT, LED1_PIN);
-    HAL_GPIO_TogglePin(LED2_GPIO_PORT, LED2_PIN);
-#else
     HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
-#endif
     delayCnt = 0;
 }
+#endif
 
 int GBothLEDs = 0;
 
 void LED_Status(int val)
 {
+#ifndef NUCLEO_BOARD
 	GPIO_InitTypeDef GPIO_InitStruct = {0};
-
+#endif
 	GBothLEDs = 0;
 
+#ifdef NUCLEO_BOARD
+	if ( !val)
+	{
+		  HAL_GPIO_WritePin(LED1_GPIO_PORT, LED1_PIN, GPIO_PIN_RESET);
+		  HAL_GPIO_WritePin(LED2_GPIO_PORT, LED2_PIN, GPIO_PIN_RESET);
+		  HAL_GPIO_WritePin(LED3_GPIO_PORT, LED3_PIN, GPIO_PIN_RESET);
+	}
+	else
+	{
+		switch(val)
+		{
+		case 1 : HAL_GPIO_WritePin(LED1_GPIO_PORT, LED1_PIN, GPIO_PIN_SET); break;
+		case 2 : HAL_GPIO_WritePin(LED2_GPIO_PORT, LED2_PIN, GPIO_PIN_SET); break;
+		case 3 : HAL_GPIO_WritePin(LED3_GPIO_PORT, LED3_PIN, GPIO_PIN_SET); break;
+		}
+	}
+#else
 	if ( !val)
 	{
 #if 1
@@ -1301,6 +1367,7 @@ void LED_Status(int val)
 		if (val == 3)
 			GBothLEDs = 1;
 	}
+#endif
 }
 
 /**
@@ -1494,8 +1561,6 @@ void HAL_SAI_TxCpltCallback(SAI_HandleTypeDef *hsai)
 	  HAL_SAI_Transmit_IT(&hsai_BlockB1, (uint8_t *)SPDIF_out_test, (uint16_t)(sizeof(SPDIF_out_test) / sizeof(uint32_t)));
 #else
 	  ////ModifySPDIFOut();
-	  if (ADF_GetADFState())
-		  ADF_GetToOutBuffer();			/* stay in sync with the ADF DMA */
 	  HAL_SAI_Transmit_IT(&hsai_BlockB1, (uint8_t *)SAIRxBuf, (uint16_t)(sizeof(SAIRxBuf) / sizeof(uint32_t)));
 #endif
   }

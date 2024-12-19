@@ -1,0 +1,11 @@
+../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_ll_rcc.h:3890:22:LL_RCC_PLL1_ConfigDomain_SYS	1
+../Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_utils.c:680:17:UTILS_GetPLLOutputFrequency	1
+../Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_utils.c:711:20:UTILS_PLL_IsBusy	4
+../Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_utils.c:170:6:LL_Init1msTick	1
+../Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_utils.c:187:6:LL_mDelay	4
+../Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_utils.c:259:6:LL_SetSystemCoreClock	1
+../Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_utils.c:273:13:LL_SetFlashLatency	24
+../Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_utils.c:748:20:UTILS_EnablePLLAndSwitchSystem	8
+../Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_utils.c:437:13:LL_PLL_ConfigSystemClock_MSI	26
+../Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_utils.c:548:13:LL_PLL_ConfigSystemClock_HSI	5
+../Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_utils.c:607:13:LL_PLL_ConfigSystemClock_HSE	6

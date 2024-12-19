@@ -1,0 +1,2 @@
+../Middlewares/ST/STM32_USBPD_Library/Devices/STM32U5XX/src/usbpd_hw_if_it.c:44:6:PORTx_IRQHandler	17
+../Middlewares/ST/STM32_USBPD_Library/Devices/STM32U5XX/src/usbpd_hw_if_it.c:39:6:USBPD_PORT0_IRQHandler	1

@@ -41,6 +41,7 @@ typedef struct {						// setcfg <idx>
 extern tCFGparams gCFGparams;
 
 void CFG_Read(void);
+void CFG_Write(void);
 void CFG_Default(void);
 void CFG_Set(unsigned long idx, unsigned long val);
 void CFG_Print(EResultOut out);

@@ -1,0 +1,3 @@
+../Core/Src/PSRAM.c:30:6:Change_QSPISpeed	2
+../Core/Src/PSRAM.c:286:6:EnableCompensationCell	1
+../Core/Src/PSRAM.c:66:5:PSRAM_Init	8

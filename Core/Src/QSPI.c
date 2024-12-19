@@ -121,13 +121,18 @@ uint8_t OSPI_WriteReadTransaction(int device, OSPI_HandleTypeDef *hospi, unsigne
 
   if (numRead)
   {
-#if 1
-	  if (device == 0x1)
 #ifdef NUCLEO_BOARD
+	  if (device == 0x1)
 		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_2, GPIO_PIN_RESET);
+	  if (device == 0x2)
+		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_RESET);
+	  if (device == 0x4)
+		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_RESET);
+	  if (device == 0x8)
+		  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_6, GPIO_PIN_RESET);
 #else
-	  	  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
-#endif
+	  if (device == 0x1)
+		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
 	  if (device == 0x2)
 		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_RESET);
 #endif
@@ -144,16 +149,23 @@ uint8_t OSPI_WriteReadTransaction(int device, OSPI_HandleTypeDef *hospi, unsigne
   {
 	  if (i)
 	  {
-#if 1
-		  if ((device & 0x1) == 0x1)
 #ifdef NUCLEO_BOARD
+		  if ((device & 0x1) == 0x1)
 			  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_2, GPIO_PIN_RESET);
+		  if ((device & 0x2) == 0x2)
+			  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_RESET);
+		  if ((device & 0x4) == 0x4)
+			  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_RESET);
+		  if ((device & 0x8) == 0x8)
+			  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_6, GPIO_PIN_RESET);
 #else
+		  if ((device & 0x1) == 0x1)
 		  	  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
-#endif
+
 		  if ((device & 0x2) == 0x2)
 			  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_RESET);
 #endif
+
 #ifdef QSPI_DMA
 		  if (HAL_OSPI_Transmit_DMA(hospi, (uint8_t *)&params[i]) != HAL_OK)
 #else
@@ -168,15 +180,18 @@ uint8_t OSPI_WriteReadTransaction(int device, OSPI_HandleTypeDef *hospi, unsigne
 #ifdef QSPI_DMA
   /* this is too early! DMA has finished but OSPI shifts still out! */
   ////while ( ! GQSPI_DMA_TxComplete ) {;}
-  while ( hospi->State != HAL_OSPI_STATE_READY) { /*tx_thread_sleep(1)*/; }
+  while ( hospi->State != HAL_OSPI_STATE_READY) { /* tx_thread_sleep(1); */ }
   /* with sleep it is too long */
 #endif
 #ifdef NUCLEO_BOARD
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_2, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_6, GPIO_PIN_SET);
 #else
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
-#endif
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_SET);
+#endif
 
   return 1;
 }
@@ -240,6 +255,7 @@ unsigned long QSPI_ReadChipID(EResultOut out)
 	{
 		unsigned long sQSPI = QSPI_GetQSPI();
 
+		//TODO: we can have also broadcast with 0xC (3 and 4)
 		if ((sQSPI & 0x3) == 0x3)
 		{
 			/* it was a broadcast - split into two read transactions */
@@ -302,7 +318,7 @@ void QSPI_DeInit(void)
 void QSPI_ReleasePins(void)
 {
     /**OCTOSPI1 GPIO Configuration
-    PA2     ------> OCTOSPIM_P1_NCS
+    PA2     ------> OCTOSPIM_P1_NCS - in SW mode
     PB0     ------> OCTOSPIM_P1_IO1
     PE12     ------> OCTOSPIM_P1_IO0
     PE14     ------> OCTOSPIM_P1_IO2
@@ -314,7 +330,6 @@ void QSPI_ReleasePins(void)
 #endif
 
     HAL_GPIO_DeInit(GPIOB, GPIO_PIN_0|GPIO_PIN_10);
-
     HAL_GPIO_DeInit(GPIOE, GPIO_PIN_12|GPIO_PIN_14|GPIO_PIN_15);
 }
 
@@ -323,13 +338,13 @@ void QSPI_ActivatePins(void)
 	GPIO_InitTypeDef GPIO_InitStruct = {0};
 
     /**OCTOSPI1 GPIO Configuration
-    PA2     ------> OCTOSPIM_P1_NCS
+    PA2     ------> OCTOSPIM_P1_NCS - SW mode
     PB0     ------> OCTOSPIM_P1_IO1
     PE12     ------> OCTOSPIM_P1_IO0
     PE14     ------> OCTOSPIM_P1_IO2
     PE15     ------> OCTOSPIM_P1_IO3
     PB10     ------> OCTOSPIM_P1_CLK
-    PA1      ------> OCTOSPIM_P1_DQS - not working in SDR mode
+    PA1      ------> OCTOSPIM_P1_DQS - not working in SDR mode, as nCS1 in SW mode
     */
 #if 0
     GPIO_InitStruct.Pin = GPIO_PIN_2;

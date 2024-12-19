@@ -1,0 +1,17 @@
+../Core/Src/stm32u5xx_it.c:65:6:NMI_Handler	0	static
+../Core/Src/stm32u5xx_it.c:75:6:HardFault_Handler	0	static
+../Core/Src/stm32u5xx_it.c:85:6:MemManage_Handler	0	static
+../Core/Src/stm32u5xx_it.c:95:6:BusFault_Handler	0	static
+../Core/Src/stm32u5xx_it.c:105:6:UsageFault_Handler	0	static
+../Core/Src/stm32u5xx_it.c:115:6:DebugMon_Handler	0	static
+../Core/Src/stm32u5xx_it.c:129:6:GPDMA1_Channel0_IRQHandler	8	static
+../Core/Src/stm32u5xx_it.c:151:6:GPDMA1_Channel6_IRQHandler	8	static
+../Core/Src/stm32u5xx_it.c:166:6:GPDMA1_Channel4_IRQHandler	8	static
+../Core/Src/stm32u5xx_it.c:171:6:GPDMA1_Channel5_IRQHandler	8	static
+../Core/Src/stm32u5xx_it.c:180:6:GPDMA1_Channel12_IRQHandler	8	static
+../Core/Src/stm32u5xx_it.c:189:6:SPI3_IRQHandler	8	static
+../Core/Src/stm32u5xx_it.c:198:6:TIM6_IRQHandler	8	static
+../Core/Src/stm32u5xx_it.c:211:6:USART1_IRQHandler	8	static
+../Core/Src/stm32u5xx_it.c:226:6:OTG_HS_IRQHandler	8	static
+../Core/Src/stm32u5xx_it.c:236:6:UCPD1_IRQHandler	8	static
+../Core/Src/stm32u5xx_it.c:242:6:OCTOSPI1_IRQHandler	8	static

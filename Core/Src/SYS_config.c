@@ -8,6 +8,7 @@
 #include "SYS_config.h"
 #include "MEM_Pool.h"
 #include "temp_sensor.h"
+#include "I2C3_flash.h"
 #include <string.h>
 
 const tCFGparams defaultCFGparams = {
@@ -35,7 +36,18 @@ tCFGparams gCFGparams;
 
 void CFG_Read(void)
 {
-	memcpy(&gCFGparams, &defaultCFGparams, sizeof(tCFGparams));
+	if (FLASH_Read(0, (unsigned char *)&gCFGparams, sizeof(tCFGparams)) == 0)
+	{
+		if (gCFGparams.key != CFG_KEY_VALID)
+			memcpy(&gCFGparams, &defaultCFGparams, sizeof(tCFGparams));
+	}
+	else
+		memcpy(&gCFGparams, &defaultCFGparams, sizeof(tCFGparams));
+}
+
+void CFG_Write(void)
+{
+	FLASH_Write(0, (unsigned char *)&gCFGparams, sizeof(tCFGparams));
 }
 
 void CFG_Default(void)

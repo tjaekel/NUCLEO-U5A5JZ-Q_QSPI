@@ -1,0 +1,6 @@
+../USBPD/App/usbpd_dpm_core.c:167:13:USBPD_DPM_CADTaskWakeUp	16	static
+../USBPD/App/usbpd_dpm_core.c:177:1:USBPD_CAD_Task	16	static
+../USBPD/App/usbpd_dpm_core.c:199:6:USBPD_DPM_CADCallback	8	static
+../USBPD/App/usbpd_dpm_core.c:102:21:USBPD_DPM_InitCore	8	static
+../USBPD/App/usbpd_dpm_core.c:143:10:USBPD_DPM_InitOS	48	static
+../USBPD/App/usbpd_dpm_core.c:231:13:USBPD_DPM_ErrorHandler	0	static

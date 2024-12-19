@@ -1,0 +1,2 @@
+../Core/Src/temp_sensor.c:21:6:ADC_Init	1
+../Core/Src/temp_sensor.c:90:5:ADC_RunOnce	6

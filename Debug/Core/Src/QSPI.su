@@ -1,0 +1,10 @@
+../Core/Src/QSPI.c:25:6:QSPI_SetQSPI	0	static
+../Core/Src/QSPI.c:30:15:QSPI_GetQSPI	0	static
+../Core/Src/QSPI.c:35:9:OSPI_WriteReadTransaction	104	static
+../Core/Src/QSPI.c:211:15:QSPI_SetClock	8	static
+../Core/Src/QSPI.c:312:6:QSPI_DeInit	8	static
+../Core/Src/QSPI.c:318:6:QSPI_ReleasePins	8	static
+../Core/Src/QSPI.c:336:6:QSPI_ActivatePins	48	static
+../Core/Src/QSPI.c:199:9:QSPI_Transaction	24	static
+../Core/Src/QSPI.c:230:15:QSPI_ReadChipID	24	static
+../Core/Src/QSPI.c:377:9:OSPI_SPITransaction	104	static

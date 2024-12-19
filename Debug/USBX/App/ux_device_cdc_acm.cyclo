@@ -1,0 +1,13 @@
+../USBX/App/ux_device_cdc_acm.c:237:6:USBD_CDC_ACM_Activate	3
+../USBX/App/ux_device_cdc_acm.c:311:6:USBD_CDC_ACM_Deactivate	1
+../USBX/App/ux_device_cdc_acm.c:335:6:USBD_CDC_ACM_ParameterChange	6
+../USBX/App/ux_device_cdc_acm.c:505:6:VCP_UART_Send	1
+../USBX/App/ux_device_cdc_acm.c:642:6:UART_Send	3
+../USBX/App/ux_device_cdc_acm.c:105:6:SendPrompt	2
+../USBX/App/ux_device_cdc_acm.c:117:6:PutCmdLine	5
+../USBX/App/ux_device_cdc_acm.c:143:5:GetCmdLine	11
+../USBX/App/ux_device_cdc_acm.c:413:6:usbx_cdc_acm_read_thread_entry	7
+../USBX/App/ux_device_cdc_acm.c:520:6:usbx_cdc_acm_write_thread_entry	9
+../USBX/App/ux_device_cdc_acm.c:664:6:HAL_UART_TxCpltCallback	2
+../USBX/App/ux_device_cdc_acm.c:680:6:HAL_UART_RxCpltCallback	4
+../USBX/App/ux_device_cdc_acm.c:716:6:HAL_UART_ErrorCallback	1

@@ -316,8 +316,10 @@ VOID USBD_CDC_ACM_Deactivate(VOID *cdc_acm_instance)
   /* Reset the cdc acm instance */
   cdc_acm = UX_NULL;
 
+#ifndef CODEC_SAI
   /* DeInitialize the UART peripheral */
   HAL_UART_DeInit(uart_handler);
+#endif
 
   /* USER CODE END USBD_CDC_ACM_Deactivate */
 
@@ -410,7 +412,7 @@ VOID USBD_CDC_ACM_ParameterChange(VOID *cdc_acm_instance)
   */
 VOID usbx_cdc_acm_read_thread_entry(ULONG thread_input)
 {
-  extern void LED_Toggle(int dly);
+  ////extern void LED_Toggle(int dly);
   int l;
   ULONG i;
 

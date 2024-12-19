@@ -5,6 +5,7 @@
  *      Author: tj925438
  */
 
+#ifdef CODEC_AVAIL
 #include "SPI1_CODEC.h"
 
 #define SPI_MAX_LEN	64
@@ -42,3 +43,4 @@ int CODEC_WriteRegisters(unsigned long addr, unsigned long *buf, unsigned long b
 
 	return 1;
 }
+#endif

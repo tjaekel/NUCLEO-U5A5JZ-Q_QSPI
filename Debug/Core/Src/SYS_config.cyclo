@@ -1,0 +1,7 @@
+../Core/Src/SYS_config.c:37:6:CFG_Read	3
+../Core/Src/SYS_config.c:48:6:CFG_Write	1
+../Core/Src/SYS_config.c:53:6:CFG_Default	1
+../Core/Src/SYS_config.c:61:6:CFG_Set	2
+../Core/Src/SYS_config.c:74:6:CFG_Print	27
+../Core/Src/SYS_config.c:93:6:CFG_Print_hex	4
+../Core/Src/SYS_config.c:105:6:SYSINFO_print	18
