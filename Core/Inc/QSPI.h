@@ -20,6 +20,7 @@ unsigned long QSPI_GetQSPI(void);
 unsigned long QSPI_SetClock(unsigned long div);
 unsigned long QSPI_ReadChipID(EResultOut out);
 void QSPI_DeInit(void);
+void QSPI_Init(void);
 void QSPI_ReleasePins(void);
 void QSPI_ActivatePins(void);
 

@@ -1196,7 +1196,8 @@ HAL_StatusTypeDef HAL_OSPI_SPITransaction(OSPI_HandleTypeDef *hospi, uint8_t *pD
 	  }
 	  else
 	  {
-	    /* Check the state */	    if (hospi->State == HAL_OSPI_STATE_CMD_CFG)
+	    /* Check the state */
+		if (hospi->State == HAL_OSPI_STATE_CMD_CFG)
 	    {
 	      /* Configure counters and size */
 	      hospi->XferCount = READ_REG(hospi->Instance->DLR) + 1U;

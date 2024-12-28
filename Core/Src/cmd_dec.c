@@ -27,6 +27,7 @@
 #ifdef ADF_AVAL
 #include "ADF_PDM.h"
 #endif
+#include "GPIO_usr.h"
 
 #include "app_azure_rtos.h"		/* for delay */
 
@@ -121,6 +122,10 @@ ECMD_DEC_Status CMD_debug(TCMD_DEC_Results *res, EResultOut out);
 ECMD_DEC_Status CMD_delay(TCMD_DEC_Results *res, EResultOut out);
 ECMD_DEC_Status CMD_usr(TCMD_DEC_Results *res, EResultOut out);
 ECMD_DEC_Status CMD_led(TCMD_DEC_Results *res, EResultOut out);
+ECMD_DEC_Status CMD_cgpio(TCMD_DEC_Results *res, EResultOut out);
+ECMD_DEC_Status CMD_pgpio(TCMD_DEC_Results *res, EResultOut out);
+ECMD_DEC_Status CMD_ggpio(TCMD_DEC_Results *res, EResultOut out);
+ECMD_DEC_Status CMD_res(TCMD_DEC_Results *res, EResultOut out);
 ECMD_DEC_Status CMD_dumpm(TCMD_DEC_Results *res, EResultOut out);
 ECMD_DEC_Status CMD_memw(TCMD_DEC_Results *res, EResultOut out);
 ECMD_DEC_Status CMD_memt(TCMD_DEC_Results *res, EResultOut out);
@@ -138,6 +143,7 @@ ECMD_DEC_Status CMD_qspi(TCMD_DEC_Results *res, EResultOut out);
 ECMD_DEC_Status CMD_rawspi(TCMD_DEC_Results *res, EResultOut out);
 ECMD_DEC_Status CMD_sqspi(TCMD_DEC_Results *res, EResultOut out);
 ECMD_DEC_Status CMD_qspideinit(TCMD_DEC_Results *res, EResultOut out);
+ECMD_DEC_Status CMD_qspiinit(TCMD_DEC_Results *res, EResultOut out);
 ECMD_DEC_Status CMD_qspiclk(TCMD_DEC_Results *res, EResultOut out);
 ECMD_DEC_Status CMD_cid(TCMD_DEC_Results *res, EResultOut out);
 
@@ -203,6 +209,26 @@ const TCMD_DEC_Command Commands[] = {
 				.cmd = (const char *)"led",
 				.help = (const char *)"led off | on1 | on2 | on3 [0..3]",
 				.func = CMD_led
+		},
+		{
+				.cmd = (const char *)"cgpio",
+				.help = (const char *)"configure GPIO direction: [mask]: 0 = out, 1 = in, [odmask] 1 = OD",
+				.func = CMD_cgpio
+		},
+		{
+				.cmd = (const char *)"pgpio",
+				.help = (const char *)"put GPIO outputs [mask]",
+				.func = CMD_pgpio
+		},
+		{
+				.cmd = (const char *)"ggpio",
+				.help = (const char *)"get GPIO outputs [-d]",
+				.func = CMD_ggpio
+		},
+		{
+				.cmd = (const char *)"res",
+				.help = (const char *)"set reset [0|1]",
+				.func = CMD_res
 		},
 		{
 				.cmd = (const char *)"dumpm",
@@ -286,13 +312,18 @@ const TCMD_DEC_Command Commands[] = {
 		},
 		{
 				.cmd = (const char *)"sqspi",
-				.help = (const char *)"sqspi [0|1,2,4,8] get or select active QSPI NCSs",
+				.help = (const char *)"sqspi [0|1,2,4,8] get or select active QSPI NCSs (or)",
 				.func = CMD_sqspi
 		},
 		{
 				.cmd = (const char *)"qspideinit",
 				.help = (const char *)"uninitialize QSPI (release GPIO pins)",
 				.func = CMD_qspideinit
+		},
+		{
+				.cmd = (const char *)"qspiinit",
+				.help = (const char *)"initialize QSPI",
+				.func = CMD_qspiinit
 		},
 		{
 				.cmd = (const char *)"qspiclk",
@@ -751,11 +782,13 @@ ECMD_DEC_Status CMD_syscfg(TCMD_DEC_Results *res, EResultOut out)
 		{
 			CFG_Print_hex(out);
 		}
+#if !defined(NUCLEO_BOARD) || defined(LEVEL_SHIFT)
 		else
 		if (strncmp(res->opt, "-w", 2) == 0)
 		{
 			CFG_Write();
 		}
+#endif
 	}
 	else
 	{
@@ -993,6 +1026,16 @@ ECMD_DEC_Status CMD_qspideinit(TCMD_DEC_Results *res, EResultOut out)
 	(void) out;
 
 	QSPI_DeInit();
+
+	return CMD_DEC_OK;
+}
+
+ECMD_DEC_Status CMD_qspiinit(TCMD_DEC_Results *res, EResultOut out)
+{
+	(void) res;
+	(void) out;
+
+	QSPI_Init();
 
 	return CMD_DEC_OK;
 }
@@ -1511,3 +1554,70 @@ ECMD_DEC_Status CMD_adf(TCMD_DEC_Results *res, EResultOut out)
 	return CMD_DEC_OK;
 }
 #endif
+
+ECMD_DEC_Status CMD_cgpio(TCMD_DEC_Results *res, EResultOut out)
+{
+	(void)out;
+
+	GPIO_Config(res->val[0]);
+	gCFGparams.GPIOdir = res->val[0];
+	gCFGparams.GPIOod  = res->val[1];
+
+	return CMD_DEC_OK;
+}
+
+ECMD_DEC_Status CMD_pgpio(TCMD_DEC_Results *res, EResultOut out)
+{
+	(void)out;
+
+	GPIO_Set(res->val[0], res->val[1]);
+	gCFGparams.GPIOout = res->val[0];			//keep it in syscfg as last value
+
+	return CMD_DEC_OK;
+}
+
+ECMD_DEC_Status CMD_ggpio(TCMD_DEC_Results *res, EResultOut out)
+{
+	(void)res;
+	unsigned long gpioRead;
+
+	gpioRead = GPIO_Get();
+	if (res->opt)
+	{
+		if (strncmp(res->opt, "-d", 2) == 0)
+		{
+			int i;
+			unsigned long mask;
+			//display header and decoded as binary - better to see
+			for (i = (sizeof(GPIOUsr) / sizeof(TGPIOUsr) - 1); i >= 0; i--)
+				print_log(out, "%4s ", GPIOUsr[i].Descr);
+			print_log(out, "\r\n");
+			mask = 1 << (sizeof(GPIOUsr) / sizeof(TGPIOUsr) - 1);
+			for (i = (sizeof(GPIOUsr) / sizeof(TGPIOUsr) - 1); i >= 0; i--)
+			{
+				print_log(out, "  %1d  ", gpioRead & mask ? 1 : 0);
+				mask >>= 1;
+			}
+			print_log(out, "\r\n");
+		}
+		else
+		{
+			print_log(out, (const char *)"GPIO: 0x%05lx\r\n", gpioRead);	//we have 3 + 16 GPIOs
+		}
+	}
+	else
+	{
+		print_log(out, (const char *)"GPIO: 0x%05lx\r\n", gpioRead);	//we have 3 + 16 GPIOs
+	}
+
+	return CMD_DEC_OK;
+}
+
+ECMD_DEC_Status CMD_res(TCMD_DEC_Results *res, EResultOut out)
+{
+	(void)out;
+
+	GPIO_SetReset(res->val[0]);
+
+	return CMD_DEC_OK;
+}

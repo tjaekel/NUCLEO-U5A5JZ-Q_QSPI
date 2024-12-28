@@ -17,6 +17,25 @@
   ******************************************************************************
   */
 
+/* how to build for...?
+ *
+ * NUCLEO board plus level shifter board:
+ * define macros in Settings as:
+ * NUCLEO_BOARD
+ * USE_NUCLEO_144
+ * LEVEL_SHIFTER
+ *
+ * for "my" QSPI MCU board:
+ * XXX_NUCLEO_BOARD
+ * XXX_USE_NUCLEO_144
+ * USE_NUCLEO_64
+ * XXX_LEVEL_SHIFTER
+ *
+ * macro:
+ * PDM_MCU (for PDM setup) is not verified again (don't use for now)
+ *
+ */
+
 #ifndef __MAIN_H
 #define __MAIN_H
 

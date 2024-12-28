@@ -25,7 +25,7 @@ extern DMA_HandleTypeDef handle_GPDMA1_Channel0;
 #if 0
 extern DMA_HandleTypeDef handle_GPDMA1_Channel7;	//SPI3 DMA Rx
 #endif
-extern DMA_HandleTypeDef handle_GPDMA1_Channel6;	//SPI3 DMA Rx
+extern DMA_HandleTypeDef handle_GPDMA1_Channel6;	//SPI3 DMA Rx or SPI1 DMA Rx
 #ifdef QSPI_DMA
 extern DMA_HandleTypeDef handle_GPDMA1_Channel12;	//QSPI DMA
 #endif

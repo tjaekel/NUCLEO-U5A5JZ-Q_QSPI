@@ -103,7 +103,11 @@ HAL_StatusTypeDef MX_Queue_rx_Config(void)
 
   /* Set node configuration ################################################*/
   pNodeConfig.NodeType = DMA_GPDMA_LINEAR_NODE;
+#ifdef NUCLEO_BOARD
+  pNodeConfig.Init.Request = GPDMA1_REQUEST_SPI1_RX;
+#else
   pNodeConfig.Init.Request = GPDMA1_REQUEST_SPI3_RX;
+#endif
   pNodeConfig.Init.BlkHWRequest = DMA_BREQ_SINGLE_BURST;
   pNodeConfig.Init.Direction = DMA_PERIPH_TO_MEMORY;
   pNodeConfig.Init.SrcInc = DMA_SINC_FIXED;

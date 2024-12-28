@@ -30,18 +30,23 @@ typedef struct {						// setcfg <idx>
 	unsigned long	QSPIspeed;			// 9: QSPI GPIO speed 0..3
 	unsigned long	DLYBunit;			//10: DLYB unit [6:0]: 0..128
 	unsigned long	DLYBphase;			//11: DLYB phase [3:0]: 0..12 (!)
+	unsigned long	GPIOdir;			//12: GPIO direction
+	unsigned long	GPIOout;			//13: GPIO output value
+	unsigned long	GPIOod;				//14: Open Drain mask for outputs, 1 = Open Drain
 
 	/* debug and other sys config */
-	unsigned long	Debug;				//12: debug flags
-	unsigned long	CfgFlags;			//13: config flags:
+	unsigned long	Debug;				//15: debug flags
+	unsigned long	CfgFlags;			//16: config flags:
 } tCFGparams;
 
 /* TODO: define all the bits, e.g. CfgFlags */
 
 extern tCFGparams gCFGparams;
 
+#if !defined(NUCLEO_BOARD) || defined(LEVEL_SHIFT)
 void CFG_Read(void);
 void CFG_Write(void);
+#endif
 void CFG_Default(void);
 void CFG_Set(unsigned long idx, unsigned long val);
 void CFG_Print(EResultOut out);

@@ -25,15 +25,19 @@ const tCFGparams defaultCFGparams = {
 		.QSPIdlyb		= 0,			// 8: QSPI peripheral: DLYB used
 		.QSPIspeed		= 3,			// 9: QSPI GPIO speed: 0..3
 		.DLYBunit		= 0,			//10: DLYB unit: 0.128
-		.DLYBphase		= 0,			//11: DLYB phase: 0..12 [3:0] !
+		.DLYBphase		= 0,			//11: DLYB phase: 0..12 [3:0]
+		.GPIOdir		= 0xFFFFFFFF,	//12: GPIO direction: 1 = input, 0 = output
+		.GPIOout		= 0x00000000,	//13: GPIO output value
+		.GPIOod			= 0x00000000,	//14: GPIO OpenDrain
 
 		/* debug and other sys config */
-		.Debug			= 0,			//12: debug flags
-		.CfgFlags		= 0				//13: config flags
+		.Debug			= 0,			//15: debug flags
+		.CfgFlags		= 0				//16: config flags
 };
 
 tCFGparams gCFGparams;
 
+#ifdef LEVEL_SHIFT
 void CFG_Read(void)
 {
 	if (FLASH_Read(0, (unsigned char *)&gCFGparams, sizeof(tCFGparams)) == 0)
@@ -49,6 +53,7 @@ void CFG_Write(void)
 {
 	FLASH_Write(0, (unsigned char *)&gCFGparams, sizeof(tCFGparams));
 }
+#endif
 
 void CFG_Default(void)
 {
@@ -62,8 +67,9 @@ void CFG_Set(unsigned long idx, unsigned long val)
 {
 	unsigned long *sPtr;
 
+	/* it allows also to write 'key'! */
 	if (idx >= (sizeof(tCFGparams) / 4))
-		return;			/* just 64 unsigned long elements */
+		return;			/* just N unsigned long elements */
 
 	/* handle structure like an array */
 	sPtr = (unsigned long *)&gCFGparams;
@@ -86,8 +92,11 @@ void CFG_Print(EResultOut out)
 	print_log(out, (const char *)"[ 9] QSPI GPIO speed   : %ld\r\n", gCFGparams.QSPIspeed);
 	print_log(out, (const char *)"[10] QSPI DLYB unit    : %ld\r\n", gCFGparams.DLYBunit);
 	print_log(out, (const char *)"[11] QSPI DLYB phase   : %ld\r\n", gCFGparams.DLYBphase);
-	print_log(out, (const char *)"[12] Debug             : %lx\r\n", gCFGparams.Debug);
-	print_log(out, (const char *)"[13] CfgFlags          : %lx\r\n", gCFGparams.CfgFlags);
+	print_log(out, (const char *)"[12] GPIOdir           : %lx\r\n", gCFGparams.GPIOdir);
+	print_log(out, (const char *)"[13] GPIOout           : %lx\r\n", gCFGparams.GPIOout);
+	print_log(out, (const char *)"[14] GPIOod            : %lx\r\n", gCFGparams.GPIOod);
+	print_log(out, (const char *)"[15] Debug             : %lx\r\n", gCFGparams.Debug);
+	print_log(out, (const char *)"[16] CfgFlags          : %lx\r\n", gCFGparams.CfgFlags);
 }
 
 void CFG_Print_hex(EResultOut out)
@@ -100,7 +109,6 @@ void CFG_Print_hex(EResultOut out)
 		print_log(out, (const char *)"%2d : 0x%08lx\r\n", (int)i, *ulPtr++);
 	}
 }
-
 
 void SYSINFO_print(EResultOut out)
 {

@@ -13,6 +13,7 @@
 #include "tx_api.h"			//for tx_thread_sleep()
 
 extern SPI_HandleTypeDef  hspi3;
+extern SPI_HandleTypeDef  hspi1;
 
 static unsigned long selQSPI = 1;
 #ifdef QSPI_DMA
@@ -134,7 +135,11 @@ uint8_t OSPI_WriteReadTransaction(int device, OSPI_HandleTypeDef *hospi, unsigne
 	  if (device == 0x1)
 		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
 	  if (device == 0x2)
+		  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_6, GPIO_PIN_RESET);
+	  if (device == 0x4)
 		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_RESET);
+	  if (device == 0x8)
+		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_RESET);
 #endif
 #ifdef QSPI_DMA
 	  if (HAL_OSPI_Receive_DMA(hospi, (uint8_t *)params) != HAL_OK)
@@ -159,11 +164,14 @@ uint8_t OSPI_WriteReadTransaction(int device, OSPI_HandleTypeDef *hospi, unsigne
 		  if ((device & 0x8) == 0x8)
 			  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_6, GPIO_PIN_RESET);
 #else
-		  if ((device & 0x1) == 0x1)
-		  	  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
-
-		  if ((device & 0x2) == 0x2)
+		  if (device == 0x1)
+			  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
+		  if (device == 0x2)
+			  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_6, GPIO_PIN_RESET);
+		  if (device == 0x4)
 			  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_RESET);
+		  if (device == 0x8)
+			  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_RESET);
 #endif
 
 #ifdef QSPI_DMA
@@ -190,7 +198,9 @@ uint8_t OSPI_WriteReadTransaction(int device, OSPI_HandleTypeDef *hospi, unsigne
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_6, GPIO_PIN_SET);
 #else
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_6, GPIO_PIN_SET);
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);
 #endif
 
   return 1;
@@ -313,17 +323,25 @@ void QSPI_DeInit(void)
 {
 	/* un-initialize all QSPI signals */
 	HAL_OSPI_DeInit(&hospi1);
+	QSPI_ReleasePins();
+}
+
+void QSPI_Init(void)
+{
+	extern void MX_OCTOSPI1_Init(void);
+	////QSPI_ActivatePins();	//done in call following
+	MX_OCTOSPI1_Init();
 }
 
 void QSPI_ReleasePins(void)
 {
     /**OCTOSPI1 GPIO Configuration
-    PA2     ------> OCTOSPIM_P1_NCS - in SW mode
+            ------> OCTOSPIM_P1_NCS - in SW mode
     PB0     ------> OCTOSPIM_P1_IO1
-    PE12     ------> OCTOSPIM_P1_IO0
-    PE14     ------> OCTOSPIM_P1_IO2
-    PE15     ------> OCTOSPIM_P1_IO3
-    PB10     ------> OCTOSPIM_P1_CLK
+    PE12    ------> OCTOSPIM_P1_IO0
+    PE14    ------> OCTOSPIM_P1_IO2
+    PE15    ------> OCTOSPIM_P1_IO3
+    PB10    ------> OCTOSPIM_P1_CLK
     */
 #if 0
     HAL_GPIO_DeInit(GPIOA, GPIO_PIN_2);
@@ -338,13 +356,13 @@ void QSPI_ActivatePins(void)
 	GPIO_InitTypeDef GPIO_InitStruct = {0};
 
     /**OCTOSPI1 GPIO Configuration
-    PA2     ------> OCTOSPIM_P1_NCS - SW mode
+            ------> OCTOSPIM_P1_NCS - SW mode
     PB0     ------> OCTOSPIM_P1_IO1
-    PE12     ------> OCTOSPIM_P1_IO0
-    PE14     ------> OCTOSPIM_P1_IO2
-    PE15     ------> OCTOSPIM_P1_IO3
-    PB10     ------> OCTOSPIM_P1_CLK
-    PA1      ------> OCTOSPIM_P1_DQS - not working in SDR mode, as nCS1 in SW mode
+    PE12    ------> OCTOSPIM_P1_IO0
+    PE14    ------> OCTOSPIM_P1_IO2
+    PE15    ------> OCTOSPIM_P1_IO3
+    PB10    ------> OCTOSPIM_P1_CLK
+    PA1     ------> OCTOSPIM_P1_DQS - not working in SDR mode, as nCS1 in SW mode
     */
 #if 0
     GPIO_InitStruct.Pin = GPIO_PIN_2;
@@ -431,9 +449,22 @@ uint8_t OSPI_SPITransaction(unsigned char *bytes, unsigned long numParams)
 
   /** SPI3 as receiver */
   //NEW: SS in SW mode - NSS is high polarity:
+#ifdef NUCLEO_BOARD
+  __HAL_SPI_ENABLE(&hspi1);
+  SET_BIT(((SPI_HandleTypeDef *)&hspi1)->Instance->CR1, SPI_CR1_SSI);
+#else
   __HAL_SPI_ENABLE(&hspi3);
   SET_BIT(((SPI_HandleTypeDef *)&hspi3)->Instance->CR1, SPI_CR1_SSI);
+#endif
 
+#ifdef NUCLEO_BOARD
+  /* start SPI1 Slave Rx in DMA mode */
+  if (HAL_SPI_Receive_DMA(&hspi1, (uint8_t *)xBytes, numParams) != HAL_OK)
+  {
+	/* Transfer error in transmission process */
+	return -1;
+  }
+#else
 #ifdef SPI3_DMA
   /* start SPI3 Slave Rx in DMA mode */
   if (HAL_SPI_Receive_DMA(&hspi3, (uint8_t *)xBytes, numParams) != HAL_OK)
@@ -442,18 +473,28 @@ uint8_t OSPI_SPITransaction(unsigned char *bytes, unsigned long numParams)
 	return -1;
   }
 #endif
+#endif
 
-#if 1
-	  if (device == 0x1)
 #ifdef NUCLEO_BOARD
-		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_2, GPIO_PIN_RESET);
+		  if ((device & 0x1) == 0x1)
+			  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_2, GPIO_PIN_RESET);
+		  if ((device & 0x2) == 0x2)
+			  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_RESET);
+		  if ((device & 0x4) == 0x4)
+			  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_RESET);
+		  if ((device & 0x8) == 0x8)
+			  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_6, GPIO_PIN_RESET);
 #else
-	  	  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
+		  if (device == 0x1)
+			  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
+		  if (device == 0x2)
+			  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_6, GPIO_PIN_RESET);
+		  if (device == 0x4)
+			  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_RESET);
+		  if (device == 0x8)
+			  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_RESET);
 #endif
-	  if (device == 0x2)
-		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_RESET);
-#endif
-  ////SET_BIT(((SPI_HandleTypeDef *)&hspi3)->Instance->CR1, SPI_CR1_CSTART);
+  ////SET_BIT(((SPI_HandleTypeDef *)&hspi1)->Instance->CR1, SPI_CR1_CSTART);
 
 #ifdef QSPI_DMA
   if (HAL_OSPI_Transmit_DMA(&hospi1, bytes) != HAL_OK)
@@ -469,17 +510,27 @@ uint8_t OSPI_SPITransaction(unsigned char *bytes, unsigned long numParams)
 	return -1;
   }
 #endif
-
 #ifdef NUCLEO_BOARD
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_2, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_6, GPIO_PIN_SET);
 #else
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
-#endif
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_6, GPIO_PIN_SET);
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);
+#endif
 
+#ifdef NUCLEO_BOARD
+  /* disable SPI1 */
+  CLEAR_BIT(((SPI_HandleTypeDef *)&hspi1)->Instance->CR1, SPI_CR1_SSI);
+  __HAL_SPI_DISABLE(&hspi1);
+#else
   /* disable SPI3 */
   CLEAR_BIT(((SPI_HandleTypeDef *)&hspi3)->Instance->CR1, SPI_CR1_SSI);
   __HAL_SPI_DISABLE(&hspi3);
+#endif
 
   return 0;
 }

@@ -15,6 +15,10 @@
   ******************************************************************************
   */
 
+/*
+ * NUCLEO_BOARD and QSPI Tx, SPI1 Rx ("rawspi") FAILS!
+ */
+
 /* Includes ------------------------------------------------------------------*/
 #include "app_threadx.h"
 #include "main.h"
@@ -27,6 +31,8 @@
 
 #include "linked_list.h"
 #include "PSRAM.h"
+
+#include "GPIO_usr.h"
 
 /** TODO
  * a) UART1 on 1V8 does not work: even with OpenDrain it fails
@@ -135,9 +141,13 @@ int main(void)
 #endif
 #endif
 
+#if !defined(NUCLEO_BOARD) || defined(LEVEL_SHIFT)
   CFG_Read();
+#endif
 
   MX_GPIO_Init();
+
+  GPIO_Config(gCFGparams.GPIOdir);
 
 #ifndef CODEC_SAI
   MX_USART1_UART_Init();	/* it conflicts with SAI1 for CODEC! */
@@ -156,9 +166,13 @@ int main(void)
 #endif
 #endif
 
+#ifdef NUCLEO_BOARD
+  MX_SPI1_Init();
+#else
   ////MX_SPI1_Init();	/* we do it later, after USB is up - via command */
 #ifndef PDM_MCU
   MX_SPI3_Init();
+#endif
 #endif
 
   ////MX_SAI1_Init();
@@ -849,7 +863,7 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
   __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
-#ifndef PDM_CMU
+#ifdef NUCLEO_BOARD
   __HAL_RCC_GPIOE_CLK_ENABLE();
   __HAL_RCC_GPIOF_CLK_ENABLE();
   __HAL_RCC_GPIOG_CLK_ENABLE();
@@ -904,12 +918,6 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 #endif
 
-  /*Configure GPIO pins : PA0 PA2 - INT0, INT1 */
-  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_2;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
 #if 0
   /*Configure GPIO pins : PA5 - test pin */
   GPIO_InitStruct.Pin = GPIO_PIN_5;
@@ -945,7 +953,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 #endif
 
-  //PA1 = QSPI_CS2, PA4 = QSPI_CS0
+  //PA4 = QSPI_CS0, PC6 = CS1, PA1 = CS2, PA8 = CS3
   //done in QSPI init
 
 #ifdef CODEC_AVAIL
@@ -978,6 +986,66 @@ static void MX_GPIO_Init(void)
   * @param None
   * @retval None
   */
+#ifdef NUCLEO_BOARD
+void MX_SPI1_Init(void)
+{
+  SPI_AutonomousModeConfTypeDef HAL_SPI_AutonomousMode_Cfg_Struct = {0};
+
+  /* SPI1 parameter configuration*/
+  hspi1.Instance = SPI1;
+  hspi1.Init.Mode = SPI_MODE_SLAVE;
+  hspi1.Init.Direction = SPI_DIRECTION_2LINES_RXONLY;	//SPI_DIRECTION_2LINES;
+  hspi1.Init.DataSize = SPI_DATASIZE_8BIT;				//SPI3 only 8 or 16bit !!
+  ////hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
+  ////hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
+  switch (gCFGparams.QSPImode)
+  {
+  case 0: hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
+  	  	  hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
+  	  	  break;
+  case 1: hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
+  	  	  hspi1.Init.CLKPhase = SPI_PHASE_2EDGE;
+  	  	  break;
+  case 2: hspi1.Init.CLKPolarity = SPI_POLARITY_HIGH;
+  	  	  hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
+  	  	  break;
+  default:
+	  	  hspi1.Init.CLKPolarity = SPI_POLARITY_HIGH;
+  	  	  hspi1.Init.CLKPhase = SPI_PHASE_2EDGE;
+  	  	  break;
+  }
+  hspi1.Init.NSS = SPI_NSS_SOFT;
+  hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
+  hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
+  hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+  hspi1.Init.CRCPolynomial = 0x7;
+  hspi1.Init.NSSPMode = SPI_NSS_PULSE_DISABLE;
+  hspi1.Init.NSSPolarity = SPI_NSS_POLARITY_HIGH;	//SPI_NSS_POLARITY_HIGH;	//SPI_NSS_POLARITY_LOW;
+  hspi1.Init.FifoThreshold = SPI_FIFO_THRESHOLD_01DATA;
+  hspi1.Init.MasterSSIdleness = SPI_MASTER_SS_IDLENESS_00CYCLE;
+  hspi1.Init.MasterInterDataIdleness = SPI_MASTER_INTERDATA_IDLENESS_00CYCLE;
+  hspi1.Init.MasterReceiverAutoSusp = SPI_MASTER_RX_AUTOSUSP_DISABLE;
+  hspi1.Init.MasterKeepIOState = SPI_MASTER_KEEP_IO_STATE_DISABLE;
+  hspi1.Init.IOSwap = SPI_IO_SWAP_DISABLE;
+  hspi1.Init.ReadyMasterManagement = SPI_RDY_MASTER_MANAGEMENT_INTERNALLY;
+  hspi1.Init.ReadyPolarity = SPI_RDY_POLARITY_HIGH;
+  if (HAL_SPI_Init(&hspi1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  HAL_SPI_AutonomousMode_Cfg_Struct.TriggerState = SPI_AUTO_MODE_DISABLE;
+  HAL_SPI_AutonomousMode_Cfg_Struct.TriggerSelection = SPI_GRP1_GPDMA_CH0_TCF_TRG;
+  HAL_SPI_AutonomousMode_Cfg_Struct.TriggerPolarity = SPI_TRIG_POLARITY_RISING;
+  if (HAL_SPIEx_SetConfigAutonomousMode(&hspi1, &HAL_SPI_AutonomousMode_Cfg_Struct) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  MX_Queue_rx_Config();
+  HAL_DMAEx_List_LinkQ(&handle_GPDMA1_Channel6, &Queue_rx);
+  __HAL_LINKDMA(&hspi1, hdmarx, handle_GPDMA1_Channel6);
+}
+#else
 void MX_SPI1_Init(void)
 {
   SPI_AutonomousModeConfTypeDef HAL_SPI_AutonomousMode_Cfg_Struct = {0};
@@ -1085,6 +1153,7 @@ void MX_SPI3_Init(void)
 
   ////__HAL_SPI_ENABLE(&hspi3);
 }
+#endif
 
 #ifndef NUCLEO_BOARD
 /**

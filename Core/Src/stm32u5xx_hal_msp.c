@@ -134,8 +134,15 @@ void HAL_OSPI_MspInit(OSPI_HandleTypeDef* hospi)
     memset(&PeriphClkInit, 0, sizeof(PeriphClkInit));
     PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_SAI2;
     PeriphClkInit.Sai2ClockSelection = RCC_SAI2CLKSOURCE_PLL3;
+    /* TODO: fix "rawspi" ! */
+////#ifdef NUCLEO_BOARD
+    ////PeriphClkInit.PLL2.PLL2Source = RCC_PLLSOURCE_HSE;	//is already
+    ////PeriphClkInit.PLL2.PLL2M = 1;						//is already
+    PeriphClkInit.Spi1ClockSelection = RCC_SPI1CLKSOURCE_SYSCLK;
+////#else
     PeriphClkInit.PLL3.PLL3Source = RCC_PLLSOURCE_HSE;
     PeriphClkInit.PLL3.PLL3M = 1;
+////#endif
 
     /* 48 KHz SPDIF            with scope/debug 	CubeMX cfg      correct */
     PeriphClkInit.PLL3.PLL3N = 36;					//36;			36;
@@ -158,11 +165,12 @@ void HAL_OSPI_MspInit(OSPI_HandleTypeDef* hospi)
     /* Peripheral clock enable */
     __HAL_RCC_OSPIM_CLK_ENABLE();
     __HAL_RCC_OSPI1_CLK_ENABLE();
-
     __HAL_RCC_GPIOA_CLK_ENABLE();
     __HAL_RCC_GPIOB_CLK_ENABLE();
-    __HAL_RCC_GPIOE_CLK_ENABLE();
+    __HAL_RCC_GPIOC_CLK_ENABLE();
+    __HAL_RCC_GPIOD_CLK_ENABLE();
 #ifdef NUCLEO_BOARD
+    __HAL_RCC_GPIOE_CLK_ENABLE();
     /**OCTOSPI1 GPIO Configuration
     PA2      ------> OCTOSPIM_P1_NCS
     PB0      ------> OCTOSPIM_P1_IO1
@@ -237,6 +245,23 @@ void HAL_OSPI_MspInit(OSPI_HandleTypeDef* hospi)
 
 #if 1
 #ifndef PDM_MCU
+    /* we use PA4 as CS0, PC6 as CS1, PA1 as CS2, PA8 as CS3 - in SW GPIO mode */
+
+    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(GPIOC, GPIO_PIN_6, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);
+
+    /*Configure GPIO pin : OCTOSPI NCS signals */
+    GPIO_InitStruct.Pin = GPIO_PIN_1 | GPIO_PIN_4 | GPIO_PIN_8;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = gCFGparams.QSPIspeed;		//GPIO_SPEED_FREQ_LOW;
+    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+    GPIO_InitStruct.Pin = GPIO_PIN_6;
+    HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+#else
     /* we use PA4 as NCCS1, PA1 as NCCS2 - in SW GPIO mode */
 
     HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
@@ -341,8 +366,8 @@ void HAL_OSPI_MspDeInit(OSPI_HandleTypeDef* hospi)
     __HAL_RCC_OSPI1_CLK_DISABLE();
 
     /**OCTOSPI1 GPIO Configuration
-    PA2     ------> OCTOSPIM_P1_NCS
-    PB0     ------> OCTOSPIM_P1_IO1
+             ------> OCTOSPIM_P1_NCS
+    PB0      ------> OCTOSPIM_P1_IO1
     PE12     ------> OCTOSPIM_P1_IO0
     PE14     ------> OCTOSPIM_P1_IO2
     PE15     ------> OCTOSPIM_P1_IO3
@@ -464,6 +489,47 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* huart)
   }
 }
 
+#ifdef NUCLEO_BOARD
+void HAL_SPI_MspInit(SPI_HandleTypeDef* hspi)
+{
+	GPIO_InitTypeDef GPIO_InitStruct = {0};
+	RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
+
+	if (hspi->Instance == SPI1)
+	{
+		PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_SPI1;
+		PeriphClkInit.Spi1ClockSelection = RCC_SPI1CLKSOURCE_SYSCLK;	//??RCC_SPI1CLKSOURCE_PCLK2;	//RCC_SPI1CLKSOURCE_SYSCLK;
+		if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
+		{
+			Error_Handler();
+		}
+
+	    /* Peripheral clock enable */
+	    __HAL_RCC_SPI1_CLK_ENABLE();
+
+	    __HAL_RCC_GPIOE_CLK_ENABLE();
+
+	    /**SPI1 GPIO Configuration
+	    PE13    ------> SPI1_SCK
+	            ------> SPI1_NSS - not used, in SW mode
+	    PE15    ------> SPI3_MISO
+	            ------> SPI3_MOSI - not used)
+	    */
+	    GPIO_InitStruct.Pin = GPIO_PIN_13|GPIO_PIN_15;
+	    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+	    GPIO_InitStruct.Pull = GPIO_NOPULL;
+	    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+	    GPIO_InitStruct.Alternate = GPIO_AF5_SPI1;
+	    HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
+
+#if 0
+	    //is this needed if we run SPI1 in DMA Rx mode?
+	    HAL_NVIC_SetPriority(SPI1_IRQn, 0, 0);
+	    HAL_NVIC_EnableIRQ(SPI1_IRQn);
+#endif
+	}
+}
+#else
 void HAL_SPI_MspInit(SPI_HandleTypeDef* hspi)
 {
 	GPIO_InitTypeDef GPIO_InitStruct = {0};
@@ -472,7 +538,7 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef* hspi)
 	if (hspi->Instance == SPI3)
 	{
 		PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_SPI3;
-		PeriphClkInit.Spi1ClockSelection = RCC_SPI3CLKSOURCE_PCLK3;	//??RCC_SPI1CLKSOURCE_PCLK2;	//RCC_SPI1CLKSOURCE_SYSCLK;	//RCC_SPI1CLKSOURCE_PCLK2;		//RCC_SPI1CLKSOURCE_SYSCLK;
+		PeriphClkInit.Spi1ClockSelection = RCC_SPI3CLKSOURCE_PCLK3;
 		if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
 		{
 			Error_Handler();
@@ -540,7 +606,22 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef* hspi)
 	    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 	}
 }
+#endif
 
+#ifdef NUCLEO_BOARD
+void HAL_SPI_MspDeInit(SPI_HandleTypeDef* hspi)
+{
+	if (hspi->Instance == SPI1)
+	{
+	    /* Peripheral clock disable */
+	    __HAL_RCC_SPI1_CLK_DISABLE();
+
+	    /**SPI1 GPIO Configuration
+	    */
+	    HAL_GPIO_DeInit(GPIOE, GPIO_PIN_13|GPIO_PIN_15);
+	}
+}
+#else
 void HAL_SPI_MspDeInit(SPI_HandleTypeDef* hspi)
 {
 	if (hspi->Instance == SPI3)
@@ -575,6 +656,7 @@ void HAL_SPI_MspDeInit(SPI_HandleTypeDef* hspi)
 	    HAL_GPIO_DeInit(GPIOB, GPIO_PIN_3|GPIO_PIN_4|GPIO_PIN_5);
 	}
 }
+#endif
 
 /**
 * @brief PCD MSP Initialization
@@ -780,7 +862,7 @@ void HAL_I2C_MspInit(I2C_HandleTypeDef* hi2c)
 	    */
 	    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_2, GPIO_PIN_RESET);
 	    GPIO_InitStruct.Pin = GPIO_PIN_2;
-	    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+	    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
 	    GPIO_InitStruct.Pull = GPIO_NOPULL;
 	    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
 	    HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
