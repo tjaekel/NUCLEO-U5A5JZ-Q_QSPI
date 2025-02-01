@@ -11,27 +11,28 @@
 /* table with all the user GPIO ports and pins */
 const TGPIOUsr GPIOUsr[GPIO_NUM_BITS] = {
 		/* GPIO_INT and GPIO_RES means: do not touch or configure, use as configured somewhere else */
-#ifdef LEVEL_SHIFTER
-		{INT0_PORT, INT0_PIN, GPIO_INT | GPIO_INPUT, "INT0"},					//b0 - is INT0
-		{INT1_PORT, INT1_PIN, GPIO_INT | GPIO_INPUT, "INT1"},					//b1 - is INT1
-		{INT2_PORT, INT2_PIN, GPIO_INT | GPIO_INPUT, "INT2"},					//b2 - is INT2
+#ifdef LEVEL_SHIFT
+		{INT0_PORT, INT0_PIN, GPIO_INT, 					   "INT0"},			//b0 - is INT0
+		{INT1_PORT, INT1_PIN, GPIO_INT, 					   "INT1"},			//b1 - is INT1
+		{INT2_PORT, INT2_PIN, GPIO_INT, 					   "INT2"},			//b2 - is INT2
 #else
 		{INT0_PORT, INT0_PIN, GPIO_INT | GPIO_INPUT | GPIO_PU, "INT0"},			//b0 - is INT0
 		{INT1_PORT, INT1_PIN, GPIO_INT | GPIO_INPUT | GPIO_PU, "INT1"},			//b1 - is INT1
 		{INT2_PORT, INT2_PIN, GPIO_INT | GPIO_INPUT | GPIO_PU, "INT2"},			//b2 - is INT2
 #endif
-		{RES_PORT,  RES_PIN,  GPIO_RES | GPIO_OUTPUT | GPIO_OD, "RES "},		//b3 - is RES
+		{RES_PORT,  RES_PIN,  GPIO_RES | GPIO_OD, 			   "RES "},			//b3 - is RES
 		/* configurable pins */
-		{GPIO2_PORT,  GPIO2_PIN,  GPIO_INPUT | GPIO_OUTPUT, "IO2 "},			//b4 - is GPIO2 - INT3
-		{GPIO3_PORT,  GPIO3_PIN,  GPIO_INPUT | GPIO_OUTPUT, "IO3 "},			//b5 - is GPIO3 - INT4
-		{GPIO4_PORT,  GPIO4_PIN,  GPIO_INPUT | GPIO_OUTPUT, "IO4 "},			//b6 - is GPIO4	- INT5
-		{GPIO5_PORT,  GPIO5_PIN,  GPIO_INPUT | GPIO_OUTPUT, "IO5 "},			//b7 - is GPIO5
+		{GPIO2_PORT,  GPIO2_PIN,  GPIO_INT, 				   "INT3"},			//b4 - is GPIO2 - INT3 - OD fails even more!
+		{GPIO3_PORT,  GPIO3_PIN,  GPIO_INT, 				   "INT4"},			//b5 - is GPIO3 - INT4 ---> causes trouble!
+		{GPIO4_PORT,  GPIO4_PIN,  GPIO_INT, 				   "INT5 "}, 		//b6 - is GPIO4	- remove SB22 on NUCLEO
+		//PB3 is SWO!
+		{GPIO5_PORT,  GPIO5_PIN,  GPIO_INPUT | GPIO_OUTPUT,    "IO5 "},			//b7 - is GPIO5
 		//{GPIO6_PORT,  GPIO6_PIN,  GPIO_INPUT | GPIO_OUTPUT, "IO6 "},			//b8 - is GPIO6
-		{GPIO6_PORT,  GPIO6_PIN,  GPIO_NONE,                "n.c."},			//b8 - is GPIO6
-		{GPIO7_PORT,  GPIO7_PIN,  GPIO_INPUT | GPIO_OUTPUT, "IO7 "},			//b9 - is GPIO7
-		{GPIO8_PORT,  GPIO8_PIN,  GPIO_INPUT | GPIO_OUTPUT, "IO8 "},			//b10 - is GPIO8
-		{GPIO9_PORT,  GPIO9_PIN,  GPIO_INPUT | GPIO_OUTPUT, "IO9 "},			//b11 - is GPIO9
-		{GPIO10_PORT, GPIO10_PIN, GPIO_INPUT | GPIO_OUTPUT, "IO10"},			//b12 - is GPIO10
+		{GPIO6_PORT,  GPIO6_PIN,  GPIO_INPUT | GPIO_OUTPUT,    "IO6 "},			//b8 - is GPIO6 - not connected on hdr, add 0R
+		{GPIO7_PORT,  GPIO7_PIN,  GPIO_INPUT | GPIO_OUTPUT,    "IO7 "},			//b9 - is GPIO7
+		{GPIO8_PORT,  GPIO8_PIN,  GPIO_INPUT | GPIO_OUTPUT,    "IO8 "},			//b10 - is GPIO8
+		{GPIO9_PORT,  GPIO9_PIN,  GPIO_INPUT | GPIO_OUTPUT,    "IO9 "},			//b11 - is GPIO9
+		////{GPIO10_PORT, GPIO10_PIN, GPIO_INPUT | GPIO_OUTPUT, "IO10"},			//b12 - is GPIO10 - same as QCLK !!!!
 };
 
 int GPIO_Config(unsigned long mask)

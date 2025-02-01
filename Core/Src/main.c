@@ -92,18 +92,20 @@ static void MX_ADC1_Init(void);
 #endif
 void MX_OCTOSPI1_Init(void);
 void MX_SPI1_Init(void);
-void MX_SPI3_Init(void);
+
 #ifndef NUCLEO_BOARD
+void MX_SPI3_Init(void);
 I2C_HandleTypeDef hi2c3;
 I2C_HandleTypeDef hi2c1;
 static void MX_I2C3_Init(void);
 static void MX_I2C1_Init(void);
+void MX_SAI1_Init(void);
 #endif
+
 #ifdef LEVEL_SHIFT
 I2C_HandleTypeDef hi2c2;
 static void MX_I2C2_Init(void);
 #endif
-void MX_SAI1_Init(void);
 
 /**
   * @brief  The application entry point.
@@ -1026,7 +1028,7 @@ void MX_SPI1_Init(void)
   hspi1.Init.MasterInterDataIdleness = SPI_MASTER_INTERDATA_IDLENESS_00CYCLE;
   hspi1.Init.MasterReceiverAutoSusp = SPI_MASTER_RX_AUTOSUSP_DISABLE;
   hspi1.Init.MasterKeepIOState = SPI_MASTER_KEEP_IO_STATE_DISABLE;
-  hspi1.Init.IOSwap = SPI_IO_SWAP_DISABLE;
+  hspi1.Init.IOSwap = SPI_IO_SWAP_DISABLE;		//XXXX
   hspi1.Init.ReadyMasterManagement = SPI_RDY_MASTER_MANAGEMENT_INTERNALLY;
   hspi1.Init.ReadyPolarity = SPI_RDY_POLARITY_HIGH;
   if (HAL_SPI_Init(&hspi1) != HAL_OK)

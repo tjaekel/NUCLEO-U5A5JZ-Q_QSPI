@@ -23,13 +23,13 @@
  * define macros in Settings as:
  * NUCLEO_BOARD
  * USE_NUCLEO_144
- * LEVEL_SHIFTER
+ * LEVEL_SHIFT
  *
  * for "my" QSPI MCU board:
  * XXX_NUCLEO_BOARD
  * XXX_USE_NUCLEO_144
  * USE_NUCLEO_64
- * XXX_LEVEL_SHIFTER
+ * XXX_LEVEL_SHIFT
  *
  * macro:
  * PDM_MCU (for PDM setup) is not verified again (don't use for now)

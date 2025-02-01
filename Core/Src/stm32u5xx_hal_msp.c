@@ -512,15 +512,24 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef* hspi)
 	    /**SPI1 GPIO Configuration
 	    PE13    ------> SPI1_SCK
 	            ------> SPI1_NSS - not used, in SW mode
-	    PE15    ------> SPI3_MISO
-	            ------> SPI3_MOSI - not used)
+	    PE15    ------> SPI1_MISO --> already as QIO3!
+	            ------> SPI1_MOSI - not used
+	    PB5     ------> SPI1_MOSI - not connected on level shift PCB! - it is UCPD!
+	    PA6     ------> SPI1_MISO - + SWAP!
 	    */
-	    GPIO_InitStruct.Pin = GPIO_PIN_13|GPIO_PIN_15;
+	    GPIO_InitStruct.Pin = GPIO_PIN_13;
 	    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
 	    GPIO_InitStruct.Pull = GPIO_NOPULL;
 	    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
 	    GPIO_InitStruct.Alternate = GPIO_AF5_SPI1;
 	    HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
+
+	    GPIO_InitStruct.Pin = GPIO_PIN_6;
+	    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+	    GPIO_InitStruct.Pull = GPIO_NOPULL;
+	    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+	    GPIO_InitStruct.Alternate = GPIO_AF5_SPI1;
+	    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
 #if 0
 	    //is this needed if we run SPI1 in DMA Rx mode?

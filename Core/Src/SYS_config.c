@@ -23,10 +23,10 @@ const tCFGparams defaultCFGparams = {
 		.QSPIshift		= 0,			// 6: QSPI peripheral: additional 1/2 clock shift
 		.QSPIqCycle 	= 0,			// 7: QSPI peripheral: quarter cycle hold shift
 		.QSPIdlyb		= 0,			// 8: QSPI peripheral: DLYB used
-		.QSPIspeed		= 3,			// 9: QSPI GPIO speed: 0..3
+		.QSPIspeed		= 2,			// 9: QSPI GPIO speed: 0..3
 		.DLYBunit		= 0,			//10: DLYB unit: 0.128
 		.DLYBphase		= 0,			//11: DLYB phase: 0..12 [3:0]
-		.GPIOdir		= 0xFFFFFFFF,	//12: GPIO direction: 1 = input, 0 = output
+		.GPIOdir		= 0xFFFFFFDF,	//12: GPIO direction: 1 = input, 0 = output - never set output b5 = 1!
 		.GPIOout		= 0x00000000,	//13: GPIO output value
 		.GPIOod			= 0x00000000,	//14: GPIO OpenDrain
 

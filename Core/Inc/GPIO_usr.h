@@ -26,11 +26,11 @@
 #define GPIO2_PORT		GPIOB
 #define	GPIO3_PIN		GPIO_PIN_7			//INT4
 #define GPIO3_PORT		GPIOA
-#define	GPIO4_PIN		GPIO_PIN_3			//INT5
-#define GPIO4_PORT		GPIOB
+#define	GPIO4_PIN		GPIO_PIN_3			//INT5 - it is SWO!!! - constant driven high!
+#define GPIO4_PORT		GPIOB				//remove SB44 on NUCLEO!
 #define	GPIO5_PIN		GPIO_PIN_4
-#define GPIO5_PORT		GPIOB
-#define	GPIO6_PIN		GPIO_PIN_9			//n.c.
+#define GPIO5_PORT		GPIOA
+#define	GPIO6_PIN		GPIO_PIN_9			//n.c. on hdr but drive as output
 #define GPIO6_PORT		GPIOE
 #define	GPIO7_PIN		GPIO_PIN_7
 #define GPIO7_PORT		GPIOD
@@ -38,8 +38,8 @@
 #define GPIO8_PORT		GPIOC
 #define	GPIO9_PIN		GPIO_PIN_1
 #define GPIO9_PORT		GPIOA
-#define	GPIO10_PIN		GPIO_PIN_10
-#define GPIO10_PORT		GPIOB
+//#define	GPIO10_PIN		GPIO_PIN_10		//already as QCLK!
+//#define GPIO10_PORT		GPIOB
 #else
 #define	INT0_PIN		GPIO_PIN_7
 #define INT0_PORT		GPIOB
@@ -71,7 +71,8 @@
 #define GPIO10_PORT		GPIOB
 #endif
 
-#define GPIO_NUM_BITS	13
+#define GPIO_NUM_BITS	12	//13
+//PB10 is 2.54V - WHY??? --> PB10 is 2x on HDR! (as QCLK)
 
 /*
  * User GPIOs - have a table for the ports, pins
